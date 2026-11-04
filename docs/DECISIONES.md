@@ -9,7 +9,7 @@
 | **Python + FastAPI** | Flask, Node/Express, Spring Boot | Valida la entrada con tipos (Pydantic), genera documentación interactiva en `/docs` para probar la API sin frontend y es fácil de leer para alguien que no es experto en backend. |
 | **SQLAlchemy 2.0 (ORM)** | SQL escrito a mano | Consultas parametrizadas por defecto (sin inyección SQL) y el mismo código funciona en SQLite y PostgreSQL. |
 | **SQLite en local, PostgreSQL en producción** | Solo SQLite / solo Postgres | SQLite no requiere instalar nada para revisar el proyecto. Postgres en producción porque guarda `NUMERIC` exacto y soporta concurrencia real. Se cambia solo con `DATABASE_URL`. |
-| **React + TypeScript** | Angular, Vue | *(completar en el Paso 4)* |
+| **React + TypeScript** | Angular, Vue | Es la tecnología que mejor conozco: la he usado en diversos proyectos, y eso me permite explicar y modificar el código con seguridad. Su modelo de componentes permite armar las pantallas con piezas reutilizables, es intuitivo y versátil para integrarlo con otras tecnologías. Además, tiene desarrollo activo: fue creado por Meta y hoy está bajo la Linux Foundation. TypeScript agrega comprobación de tipos sobre los datos que llegan de la API. |
 | **Deploy: un solo servicio** | Front y back separados | FastAPI sirve el frontend compilado: un solo dominio, sin CORS, un solo deploy. |
 
 El criterio principal para elegir el stack fue la **facilidad de desplegarlo y explicarlo**.
