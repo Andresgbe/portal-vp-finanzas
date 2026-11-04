@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.security import hash_password  # noqa: E402
+from app.deteccion import reprocesar_todo  # noqa: E402
 from scripts.seed import cargar_cierres, cargar_organizacion  # noqa: E402
 
 PASSWORD = "Prueba.12345"
@@ -36,6 +37,7 @@ def _sembrar():
     with SessionLocal() as db:
         cargar_organizacion(db, hash_password(PASSWORD))
         cargar_cierres(db)
+        reprocesar_todo(db)
         db.commit()
 
 

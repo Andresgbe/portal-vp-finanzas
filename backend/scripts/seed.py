@@ -16,6 +16,7 @@ from pathlib import Path
 
 from app.config import settings
 from app.database import Base, SessionLocal, engine
+from app.deteccion import reprocesar_todo
 from app.models import (
     Cajero, Cargo, CierreCaja, Colaborador, Departamento, Funcion, Modulo,
     Nivel, Pais, ParametroDeteccion, PermisoModulo, Rol, Tienda, Usuario,
@@ -278,10 +279,12 @@ def main() -> None:
         cuentas = cargar_organizacion(db, hash_password(pwd))
         n_cierres = cargar_cierres(db)
         ajustar_secuencias(db)
+        n_alertas = reprocesar_todo(db)
         db.commit()
 
         print(f"OK · {db.query(Colaborador).count()} colaboradores en {db.query(Departamento).count()} departamentos")
         print(f"OK · {n_cierres} cierres de caja cargados del dataset")
+        print(f"OK · {n_alertas} alertas generadas por el motor de detección")
         print("\nCuentas de demostración (contraseña = SEED_DEMO_PASSWORD):")
         for rol, depto, correo in cuentas:
             print(f"  {rol:<12} {depto:<26} {correo}")
