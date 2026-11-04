@@ -42,7 +42,7 @@ Fuente: `Enunciado_Prueba_Tecnica_Candidato.pdf`.
 | Secretos en `.env` y `.gitignore` correcto | Hecho |
 | Historial de Git que refleje el avance | Hecho: 8 commits |
 | README con instrucciones para levantar el proyecto | Parcial: falta el frontend |
-| Documento de decisiones | Parcial: falta la justificación de React y el deploy |
+| Documento de decisiones | Parcial: falta la sección del frontend y el deploy |
 | Registro de IA con al menos un error real detectado | Parcial: **falta la sección "Error que detecté yo"** |
 
 ## 4. Decisiones ya tomadas
