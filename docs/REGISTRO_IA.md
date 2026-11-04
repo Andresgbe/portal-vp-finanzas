@@ -44,6 +44,11 @@ La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok,
 
 **Resultado:** la IA revisó el backend y ejecutó pruebas sobre una copia aislada. Encontró que los errores 422 no cumplían el formato documentado, que `/api/no-existe` respondía 200 con HTML y que un `APP_ENV` mal escrito desactivaba las protecciones de producción. El plan quedó en `docs/ARQUITECTURA.md`. Descartó microservicios y arquitectura hexagonal por desproporcionados.
 
+### Prompt 7: Planificación en GitHub según el SDLC (Claude Code)
+> *[Adjunté una imagen con las 7 fases]* "Nos guiaremos bajo estas 7 fases. Yo quiero crear dos ramas, una dev y otra que es la master, donde haremos el deploy, y ayúdame a crear la sección de issues."
+
+**Resultado:** se crearon las ramas `master` y `dev`, un milestone por fase, etiquetas, tickets y un tablero. La IA señaló que la imagen decía "SDCL" en vez de SDLC, y que los tickets del trabajo ya hecho debían quedar marcados como `retroactivo` y no presentarse como planificación previa.
+
 <!-- Agrega aquí los prompts importantes que uses en Claude Code (frontend, deploy...) -->
 
 ---
