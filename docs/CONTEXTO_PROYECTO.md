@@ -61,11 +61,11 @@ Fuente: `Enunciado_Prueba_Tecnica_Candidato.pdf`.
 
 ## 6. Estado verificado (3 de noviembre de 2026)
 
-- Ramas `master` (deploy) y `dev` (trabajo diario), ambas en el commit `8173a34`.
+- Ramas `master` (deploy) y `dev` (trabajo diario). Los cambios pasan de `dev` a `master` con un pull request.
 - `python -m pytest -q`: **60 pruebas pasan**.
 - La detección da 14 fuera de rango, 5 transposiciones, 6 duplicados y 3 reincidencias. Una prueba lo comprueba.
 - Python 3.12.10 y Node 24.20.0 instalados.
-- **El repo no tiene remoto.** Hay que crearlo para poder entregarlo.
+- Repositorio público: `github.com/Andresgbe/portal-vp-finanzas`. El trabajo se sigue con tickets, un milestone por fase del SDLC y un tablero de GitHub Projects.
 - **`backend/portal.db` está desactualizada:** tiene 0 alertas porque es anterior al paso 3. Se corrige con `python -m scripts.seed --reset`, desde `backend/`.
 
 ## 7. Qué falta, en orden
@@ -73,7 +73,7 @@ Fuente: `Enunciado_Prueba_Tecnica_Candidato.pdf`.
 1. **Paso 4: frontend React.** Es lo único obligatorio sin empezar. La especificación está en `CLAUDE.md`.
 2. **Paso 5: documentación.** Completar README, DECISIONES y REGISTRO_IA.
 3. **Error real detectado:** Andrés debe escribirlo con algo que haya notado personalmente. No se puede inventar ni delegar a la IA.
-4. **Remoto de Git:** crear el repositorio y subir el historial.
+4. **Tickets y tablero:** mantenerlos al día mientras se avanza.
 5. **Paso 6: deploy** en Render y Supabase. Es opcional: el enunciado solo pide poder levantarlo localmente.
 6. **Paso 7: presentación.** Una lámina personal y 10 minutos sobre el caso.
 7. **Ensayo:** practicar la explicación y la modificación en vivo del código.
