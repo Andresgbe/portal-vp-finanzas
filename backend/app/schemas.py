@@ -3,11 +3,15 @@
 Definir explícitamente qué campos salen evita filtrar datos por accidente
 (por ejemplo, nunca se devuelve password_hash porque no está aquí).
 """
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+
+# Todas las fechas-hora se guardan en UTC. SQLite las devuelve "sin zona";
+# aquí se marcan como UTC para que el frontend las convierta bien a hora local.
+FechaUTC = Annotated[datetime, AfterValidator(lambda d: d if d.tzinfo else d.replace(tzinfo=timezone.utc))]
 
 
 class Orm(BaseModel):
@@ -135,7 +139,7 @@ class CierreOut(BaseModel):
     diferencia: Decimal
     origen: str
     registrado_por: str | None
-    registrado_en: datetime
+    registrado_en: FechaUTC
     alertas: list[AlertaResumen]
 
 
@@ -145,7 +149,7 @@ class CierreCreado(CierreOut):
 
 # ---------- Alertas ----------
 class HistorialOut(BaseModel):
-    fecha: datetime
+    fecha: FechaUTC
     estado_anterior: str | None
     estado_nuevo: str
     usuario: str
@@ -158,7 +162,7 @@ class AlertaOut(BaseModel):
     severidad: str
     estado: str
     detalle: str
-    creada_en: datetime
+    creada_en: FechaUTC
     cierre_id: int
     fecha_cierre: date
     tienda: str
@@ -168,7 +172,7 @@ class AlertaOut(BaseModel):
     monto_sistema: Decimal
     diferencia: Decimal
     gestionada_por: str | None
-    gestionada_en: datetime | None
+    gestionada_en: FechaUTC | None
     puede_gestionar: bool
     motivo_no_gestionable: str | None
 
