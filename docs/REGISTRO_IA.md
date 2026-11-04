@@ -1,0 +1,75 @@
+# Registro de uso de Inteligencia Artificial
+
+Herramientas utilizadas:
+- **Claude (claude.ai):** análisis del enunciado y de los datos, diseño del modelo y desarrollo del backend (Pasos 1 a 3).
+- **Claude Code (extensión de VS Code):** frontend, documentación y deploy (Pasos 4 en adelante).
+
+Forma de trabajo: el proyecto se dividió en pasos y la IA presentó cada decisión de diseño antes de implementarla. Cada commit tiene la línea `Co-Authored-By: Claude`, de modo que el historial de Git muestra con transparencia qué se hizo con IA.
+
+---
+
+## 1. Prompts principales
+
+### Prompt 1: Arranque (claude.ai)
+> *[Adjunté el PDF del enunciado, el ZIP con los datasets y las dos láminas del evento]*
+> "Quiero hacerlo muy bien porque es para una entrevista de trabajo en Farmatodo."
+
+**Resultado:** antes de proponer nada, la IA analizó los datasets y encontró:
+- transposiciones de dígitos sembradas en los cierres;
+- 6 casos del mismo cajero con dos cierres en la misma fecha, aunque el README dice que hay uno por día;
+- una contradicción entre el enunciado y el README de notas de crédito sobre registrar o no quién aprueba.
+
+Luego me hizo tres preguntas: qué caso construir, qué stack usar y cómo trabajar.
+
+### Prompt 2: Elección de caso, stack y forma de trabajo
+> Elegí: **Cierres de caja**. Ante la pregunta del stack respondí: **"¿Cuál es más fácil para hacer deploy y subir?"**. Forma de trabajo: **paso a paso juntos**.
+
+**Decisión:** Python (FastAPI) + React. La razón que pesó fue la del deploy: un solo servicio que sirve API y frontend, con PostgreSQL en Supabase. El plan gratuito de Render borra su Postgres a los 30 días y pierde los archivos SQLite en cada reinicio.
+
+### Prompt 3: Modelo de datos
+La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok, empieza el proyecto"**.
+
+### Prompt 4: Trabajo local
+> "Dame el comando para crear el proyecto desde Visual" / "Lo haré con la extensión de Claude Code, dame el contexto."
+
+**Resultado:** se generó `CLAUDE.md` con el contexto, las reglas de seguridad y la especificación del frontend, para continuar en VS Code.
+
+<!-- Agrega aquí los prompts importantes que uses en Claude Code (frontend, deploy...) -->
+
+---
+
+## 2. Sugerencias aceptadas, modificadas y rechazadas
+
+| Sugerencia de la IA | Decisión | Por qué |
+|---|---|---|
+| Caso de cierres de caja en vez de notas de crédito | Aceptada | Tiene más lógica de negocio y el de notas de crédito trae una contradicción sin resolver. |
+| Python + React | Aceptada, con mi criterio de deploy | Pregunté cuál era más fácil de desplegar; esa fue la razón de la elección. |
+| Separar funciones: Tesorería registra y Contraloría revisa | Aceptada | Es un control interno real de finanzas. |
+| Cierres duplicados como alerta, no como rechazo | Aceptada | No sabemos si existen turnos dobles; rechazarlos perdería información. |
+| JWT en cookie httpOnly | Aceptada | Ver la sección 3. |
+| *(completar)* | | |
+
+---
+
+## 3. Errores o malas prácticas detectados en respuestas de IA
+
+### Práctica común rechazada: token en `localStorage`
+Muchas guías y asistentes de IA guardan el JWT en `localStorage` y lo envían en un header. Es vulnerable: cualquier script inyectado (XSS) puede leerlo y robar la sesión. Se usa una cookie **httpOnly + SameSite=Strict**, que JavaScript no puede leer.
+
+### Correcciones durante el desarrollo
+Se encontraron al revisar el código y al correr las pruebas, y se corrigieron antes de cada commit:
+1. **Llaves foráneas desactivadas en SQLite.** SQLite no valida FKs si no se activa `PRAGMA foreign_keys`. Se verificó insertando un cierre con un cajero inexistente (rechazado) y se dejó activado en `database.py`.
+2. **Orden de seniority frágil.** Una consulta ordenaba por `nivel_id`, suponiendo que los IDs seguían el orden de los niveles. Se cambió a `nivel.orden`, que es el dato real.
+3. **Pruebas que dependían del orden de ejecución.** Algunas pruebas modificaban datos que otras leían. Se aislaron recreando la BD (fixture `bd_limpia`).
+4. **Dependencia oculta.** Se importó `EmailStr` de Pydantic, que requiere un paquete extra no instalado. Se quitó.
+5. **Fechas sin zona horaria.** SQLite devolvía fechas sin zona y el navegador las habría mostrado 4 horas corridas. Se marcan como UTC al responder.
+
+### Error que detecté yo
+<!--
+  OBLIGATORIO según la sección 5 del enunciado. Debe ser real: algo que TÚ notaste.
+  Formato sugerido:
+  - Qué le pedí a la IA:
+  - Qué respondió (el problema):
+  - Cómo lo detecté:
+  - Cómo lo corregí:
+-->
