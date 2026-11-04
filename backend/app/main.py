@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
-from .routers import auth, organizacion
+from .routers import auth, cierres, organizacion
 
 app = FastAPI(
     title="Portal VP de Finanzas",
@@ -24,6 +24,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(organizacion.router)
+app.include_router(cierres.router)
 
 
 @app.middleware("http")

@@ -3,7 +3,9 @@
 Definir explícitamente qué campos salen evita filtrar datos por accidente
 (por ejemplo, nunca se devuelve password_hash porque no está aquí).
 """
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -90,3 +92,116 @@ class CargoEstructura(CargoOut):
 class EstructuraOut(BaseModel):
     departamento: DepartamentoOut
     cargos: list[CargoEstructura]
+
+
+# ---------- Cierres de caja ----------
+class TiendaOut(BaseModel):
+    id: int
+    nombre: str
+    pais: str
+
+
+class CajeroOut(BaseModel):
+    id: int
+    nombre: str
+    tienda_id: int
+    tienda: str
+
+
+class CierreIn(BaseModel):
+    tienda_id: int
+    cajero_id: int
+    fecha: date
+    monto_declarado: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    monto_sistema: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+
+
+class AlertaResumen(BaseModel):
+    id: int
+    regla: str
+    severidad: str
+    estado: str
+
+
+class CierreOut(BaseModel):
+    id: int
+    fecha: date
+    tienda_id: int
+    tienda: str
+    cajero_id: int
+    cajero: str
+    monto_declarado: Decimal
+    monto_sistema: Decimal
+    diferencia: Decimal
+    origen: str
+    registrado_por: str | None
+    registrado_en: datetime
+    alertas: list[AlertaResumen]
+
+
+class CierreCreado(CierreOut):
+    alertas_generadas: int
+
+
+# ---------- Alertas ----------
+class HistorialOut(BaseModel):
+    fecha: datetime
+    estado_anterior: str | None
+    estado_nuevo: str
+    usuario: str
+    comentario: str
+
+
+class AlertaOut(BaseModel):
+    id: int
+    regla: str
+    severidad: str
+    estado: str
+    detalle: str
+    creada_en: datetime
+    cierre_id: int
+    fecha_cierre: date
+    tienda: str
+    cajero_id: int
+    cajero: str
+    monto_declarado: Decimal
+    monto_sistema: Decimal
+    diferencia: Decimal
+    gestionada_por: str | None
+    gestionada_en: datetime | None
+    puede_gestionar: bool
+    motivo_no_gestionable: str | None
+
+
+class AlertaDetalle(AlertaOut):
+    historial: list[HistorialOut]
+
+
+class GestionIn(BaseModel):
+    estado: Literal["revisada", "descartada"]
+    comentario: str = Field(min_length=10, max_length=500)
+
+
+class ConteoOut(BaseModel):
+    clave: str
+    total: int
+
+
+class CajeroRiesgo(BaseModel):
+    cajero_id: int
+    cajero: str
+    tienda: str
+    alertas_abiertas: int
+
+
+class ResumenAlertas(BaseModel):
+    por_estado: list[ConteoOut]
+    por_regla: list[ConteoOut]
+    por_severidad_pendientes: list[ConteoOut]
+    cajeros_con_mas_alertas: list[CajeroRiesgo]
+
+
+class ParametroOut(BaseModel):
+    clave: str
+    valor: Decimal
+    descripcion: str
