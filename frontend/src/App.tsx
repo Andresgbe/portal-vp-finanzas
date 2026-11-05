@@ -25,9 +25,9 @@ export function App() {
             <Route element={<Layout />}>
               <Route index element={<Inicio />} />
               <Route path="perfil" element={<RutaModulo codigo="MI_PERFIL"><Perfil /></RutaModulo>} />
-              <Route path="departamentos" element={<RutaModulo codigo="DEPARTAMENTOS"><Departamentos /></RutaModulo>} />
-              <Route path="directorio" element={<RutaModulo codigo="DIRECTORIO"><Directorio /></RutaModulo>} />
-              <Route path="directorio/:id" element={<RutaModulo codigo="DIRECTORIO"><FichaPersona /></RutaModulo>} />
+              <Route path="departamentos" element={<RutaModulo codigo="DIRECTORIO"><Departamentos /></RutaModulo>} />
+              <Route path="departamentos/:departamentoId" element={<RutaModulo codigo="DIRECTORIO"><Directorio /></RutaModulo>} />
+              <Route path="departamentos/:departamentoId/colaboradores/:id" element={<RutaModulo codigo="DIRECTORIO"><FichaPersona /></RutaModulo>} />
               <Route path="estructura" element={<RutaModulo codigo="ESTRUCTURA"><Estructura /></RutaModulo>} />
               <Route path="cierres" element={<RutaModulo codigo="CIERRES"><Cierres /></RutaModulo>} />
               <Route path="alertas" element={<RutaModulo codigo="ALERTAS"><Alertas /></RutaModulo>} />

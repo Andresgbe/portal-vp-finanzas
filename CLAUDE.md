@@ -74,8 +74,7 @@ El departamento de un colaborador **se obtiene de su cargo** (no hay `departamen
 | Módulo | Quién lo ve |
 |---|---|
 | `MI_PERFIL` | todos |
-| `DEPARTAMENTOS` | todos (Admin ve los 4; los demás, solo el propio) |
-| `DIRECTORIO` | todos (Colaborador: solo compañeros activos con nombre/cargo/correo) |
+| `DIRECTORIO` (en el menú: "Departamentos") | todos: se elige un departamento y se ve su directorio. Admin ve los 4; los demás, solo el propio (Colaborador: solo compañeros activos con nombre/cargo/correo) |
 | `ESTRUCTURA` | Jefes y Admin |
 | `CIERRES` | Jefe Tesorería (escritura), Jefe Contraloría (lectura), Admin |
 | `ALERTAS` | Jefe Contraloría (escritura), Jefe Tesorería (lectura), Admin |

@@ -2,8 +2,7 @@
 // el backend en /auth/me; aquí no se decide ningún permiso.
 export const RUTA_DE_MODULO: Record<string, string> = {
   MI_PERFIL: "/perfil",
-  DEPARTAMENTOS: "/departamentos",
-  DIRECTORIO: "/directorio",
+  DIRECTORIO: "/departamentos",
   ESTRUCTURA: "/estructura",
   CIERRES: "/cierres",
   ALERTAS: "/alertas",
