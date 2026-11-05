@@ -36,6 +36,27 @@ async function leerMensaje(respuesta: Response): Promise<string> {
   return MENSAJES_POR_ESTADO[respuesta.status] ?? MENSAJE_GENERICO;
 }
 
+/** Descarga un archivo de la API. Los permisos los valida el backend, igual que en cualquier consulta. */
+export async function descargar(ruta: string, nombreArchivo: string): Promise<void> {
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`/api${ruta}`, { credentials: "same-origin" });
+  } catch {
+    throw new ErrorApi("No se pudo conectar con el servidor.", 0);
+  }
+
+  if (!respuesta.ok) {
+    if (respuesta.status === 401) alExpirar?.();
+    throw new ErrorApi(await leerMensaje(respuesta), respuesta.status);
+  }
+
+  const enlace = document.createElement("a");
+  enlace.href = URL.createObjectURL(await respuesta.blob());
+  enlace.download = nombreArchivo;
+  enlace.click();
+  URL.revokeObjectURL(enlace.href);
+}
+
 export async function api<T>(ruta: string, cuerpo?: unknown, metodo?: string): Promise<T> {
   let respuesta: Response;
   try {

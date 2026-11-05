@@ -1,7 +1,10 @@
 """Pruebas del proceso completo: registrar cierre -> alerta -> gestión -> historial."""
 from datetime import date, timedelta
 
+from io import BytesIO
+
 import pytest
+from pypdf import PdfReader
 from sqlalchemy import delete
 
 from app.database import SessionLocal
@@ -240,6 +243,55 @@ def test_el_cierre_inhabilitado_no_cuenta_para_reincidencia(login):
     with SessionLocal() as db:
         referencia = db.get(CierreCaja, primero["id"])
         assert ultimo["id"] not in {c.id for c in _anomalias_en_ventana(db, referencia, 30)}
+
+
+# ------------------------------------------------------------ reporte PDF
+def _texto_pdf(respuesta) -> str:
+    return " ".join(p.extract_text() for p in PdfReader(BytesIO(respuesta.content)).pages)
+
+
+def test_reporte_pdf_se_descarga_con_los_cierres(login):
+    r = login("jefe_tesoreria").get("/api/cierres/reporte.pdf")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert "attachment" in r.headers["content-disposition"]
+    texto = _texto_pdf(r)
+    assert "Reporte de cierres de caja" in texto
+    assert "Lucía Paredes" in texto
+    assert "Cierres: 60" in texto
+    assert "6.765,86" in texto  # formato venezolano, sin perder decimales
+
+
+def test_reporte_pdf_respeta_los_filtros(login):
+    cliente = login("jefe_tesoreria")
+    filtrados = cliente.get("/api/cierres?tienda_id=1").json()
+    texto = _texto_pdf(cliente.get("/api/cierres/reporte.pdf?tienda_id=1"))
+    assert f"Cierres: {len(filtrados)}" in texto
+    assert filtrados[0]["tienda"] in texto
+    assert "Filtros: tienda" in texto
+
+
+@pytest.mark.parametrize("quien", ["colab_tesoreria", "jefe_contabilidad"])
+def test_reporte_pdf_exige_el_modulo(login, quien):
+    assert login(quien).get("/api/cierres/reporte.pdf").status_code == 403
+
+
+def test_reporte_pdf_exige_sesion(cliente):
+    assert cliente.get("/api/cierres/reporte.pdf").status_code == 401
+
+
+def test_reporte_pdf_muestra_el_cierre_inhabilitado_y_escapa_el_motivo(login):
+    """Un motivo con etiquetas no debe romper el PDF: se escribe como texto."""
+    contraloria = login("jefe_contraloria")
+    cierre_id, _ = _cierre_con_alerta_pendiente(login)
+    motivo = "Error <b>de</b> carga & revisado"
+    assert contraloria.post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": motivo}).status_code == 200
+
+    r = contraloria.get("/api/cierres/reporte.pdf")
+    assert r.status_code == 200
+    texto = _texto_pdf(r)
+    assert "Inhabilitados: 1" in texto
+    assert "Error <b>de</b> carga & revisado" in texto.replace("\n", " ")
 
 
 def test_descartar_alertas_evita_reincidencia_futura(login):

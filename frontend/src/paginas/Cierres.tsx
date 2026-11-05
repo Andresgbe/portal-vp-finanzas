@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { api, ErrorApi } from "../api/cliente";
+import { api, descargar, ErrorApi } from "../api/cliente";
 import type { Cajero, Cierre, CierreCreado, Tienda } from "../api/tipos";
 import { EstadoCarga, MensajeError } from "../componentes/Estados";
 import { useCarga } from "../hooks/useCarga";
@@ -160,19 +160,35 @@ export function Cierres() {
   const [soloConAlertas, setSoloConAlertas] = useState(false);
   const [aInhabilitar, setAInhabilitar] = useState<Cierre | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [descargando, setDescargando] = useState(false);
+  const [errorDescarga, setErrorDescarga] = useState<string | null>(null);
 
   // Mostrar el formulario es comodidad: quien decide si puede registrar es el backend (403)
   const puedeRegistrar = usuario?.modulos.find((m) => m.codigo === "CIERRES")?.nivel_acceso === "escritura";
 
   const tiendas = useCarga(() => api<Tienda[]>("/tiendas"), []);
-  const cierres = useCarga(() => {
-    const parametros = new URLSearchParams();
-    if (tiendaId) parametros.set("tienda_id", tiendaId);
-    if (desde) parametros.set("desde", desde);
-    if (hasta) parametros.set("hasta", hasta);
-    if (soloConAlertas) parametros.set("solo_con_alertas", "true");
-    return api<Cierre[]>(`/cierres?${parametros}`);
-  }, [tiendaId, desde, hasta, soloConAlertas]);
+
+  // La tabla y el PDF usan los mismos filtros: el reporte siempre coincide con lo que se ve
+  const parametros = new URLSearchParams();
+  if (tiendaId) parametros.set("tienda_id", tiendaId);
+  if (desde) parametros.set("desde", desde);
+  if (hasta) parametros.set("hasta", hasta);
+  if (soloConAlertas) parametros.set("solo_con_alertas", "true");
+  const filtros = parametros.toString();
+
+  const cierres = useCarga(() => api<Cierre[]>(`/cierres?${filtros}`), [filtros]);
+
+  async function descargarReporte() {
+    setErrorDescarga(null);
+    setDescargando(true);
+    try {
+      await descargar(`/cierres/reporte.pdf?${filtros}`, "reporte-cierres.pdf");
+    } catch (e) {
+      setErrorDescarga((e as ErrorApi).message);
+    } finally {
+      setDescargando(false);
+    }
+  }
 
   return (
     <>
@@ -223,7 +239,12 @@ export function Cierres() {
             <input type="checkbox" checked={soloConAlertas} onChange={(e) => setSoloConAlertas(e.target.checked)} />
             Solo con alertas
           </label>
+          <button type="button" className="boton boton-secundario" disabled={descargando} onClick={descargarReporte}>
+            {descargando ? "Generando…" : "Descargar PDF"}
+          </button>
         </form>
+
+        {errorDescarga && <div className="filtros"><MensajeError texto={errorDescarga} /></div>}
 
         {cierres.error && <div className="filtros"><MensajeError texto={cierres.error} /></div>}
         {cierres.cargando && !cierres.datos && <div className="filtros"><EstadoCarga /></div>}

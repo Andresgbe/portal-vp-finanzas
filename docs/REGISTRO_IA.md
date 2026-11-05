@@ -69,6 +69,11 @@ La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok,
 
 **Resultado:** la IA advirtió el riesgo de que quien registra pudiera esconder un faltante y preguntó quién debía poder hacerlo. Elegí Contraloría y Admin, nunca quien registró el cierre, y que las alertas pendientes se descartaran. Se crearon `permiso_accion` y `cierre_historial`; una prueba confirma que quitar la fila de la base de datos quita el permiso.
 
+### Prompt 12: Reporte en PDF (Claude Code)
+> "Dame la opción de poder descargar el reporte en PDF."
+
+**Resultado:** el PDF se genera en el backend con los mismos permisos y filtros que la tabla. Como el motivo de inhabilitación lo escribe un usuario, se escapa antes de ponerlo en el PDF, y una prueba lo comprueba.
+
 <!-- Agrega aquí los prompts importantes que uses en Claude Code (frontend, deploy...) -->
 
 ---
