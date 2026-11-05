@@ -52,12 +52,18 @@ def _cierre_out(c: CierreCaja) -> dict:
     )
 
 
+def _registro_el_cierre(a: Alerta, actual: UsuarioActual) -> bool:
+    """Segregación de funciones: un solo lugar decide si esta persona registró el cierre.
+    Lo usan la pantalla (puede_gestionar) y el endpoint, para que nunca se contradigan."""
+    return a.cierre.registrado_por_id == actual.id
+
+
 def _motivo_no_gestionable(a: Alerta, actual: UsuarioActual, puede_escribir: bool) -> str | None:
     if not puede_escribir:
         return "Tu rol solo tiene acceso de lectura a las alertas."
     if a.estado != "pendiente":
         return "La alerta ya fue gestionada."
-    if a.cierre.registrado_por_id == actual.id:
+    if _registro_el_cierre(a, actual):
         return "Registraste este cierre: otra persona debe revisar sus alertas."
     return None
 
@@ -218,7 +224,7 @@ def gestionar_alerta(alerta_id: int, datos: GestionIn,
     alerta = db.scalar(select(Alerta).options(joinedload(Alerta.cierre)).where(Alerta.id == alerta_id))
     if alerta is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Alerta no encontrada")
-    if alerta.cierre.registrado_por_id == actual.id:
+    if _registro_el_cierre(alerta, actual):
         raise HTTPException(status.HTTP_403_FORBIDDEN,
                             "Segregación de funciones: no puedes gestionar alertas de un cierre que registraste")
 
