@@ -21,7 +21,7 @@ El enunciado evalúa **cómo se usa la IA con criterio**: Andrés debe entender 
 | Base de datos | SQLite en local, PostgreSQL en producción (se cambia solo con `DATABASE_URL`) |
 | Auth | JWT firmado en **cookie httpOnly + SameSite=Strict** · contraseñas con bcrypt |
 | Frontend | **React + TypeScript + Vite + React Router** (pendiente, carpeta `frontend/`) |
-| Pruebas | pytest (60 pruebas, todas pasan) |
+| Pruebas | pytest (todas pasan) |
 
 ## Comandos
 
@@ -29,7 +29,7 @@ El enunciado evalúa **cómo se usa la IA con criterio**: Andrés debe entender 
 # Desde la raíz, con el venv activo (.\.venv\Scripts\Activate.ps1)
 cd backend
 python -m scripts.seed --reset        # recrea BD: 40 colaboradores, 60 cierres, 28 alertas
-python -m pytest -q                   # 60 passed
+python -m pytest -q                   # corre todas las pruebas
 uvicorn app.main:app --reload         # API en http://localhost:8000 · docs en /docs
 python -m scripts.export_schema       # regenera database/schema_postgresql.sql
 ```

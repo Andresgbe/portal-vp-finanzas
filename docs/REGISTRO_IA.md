@@ -78,6 +78,8 @@ Se encontraron al revisar el código y al correr las pruebas, y se corrigieron a
 3. **Pruebas que dependían del orden de ejecución.** Algunas pruebas modificaban datos que otras leían. Se aislaron recreando la BD (fixture `bd_limpia`).
 4. **Dependencia oculta.** Se importó `EmailStr` de Pydantic, que requiere un paquete extra no instalado. Se quitó.
 5. **Fechas sin zona horaria.** SQLite devolvía fechas sin zona y el navegador las habría mostrado 4 horas corridas. Se marcan como UTC al responder.
+6. **Errores 422 que repetían lo enviado.** Además de venir en inglés, incluían el campo `input`, que podía contener una contraseña. Se reemplazaron por un mensaje en español sin ese dato.
+7. **Prueba que no probaba nada.** La IA escribió una prueba de salida de carpeta (`/%2e%2e/...`), pero el cliente de pruebas normaliza la URL, así que pasaría con o sin protección. Se eliminó en vez de dejar una falsa seguridad.
 
 ### Error que detecté yo
 <!--
