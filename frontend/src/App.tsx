@@ -3,10 +3,13 @@ import { Layout } from "./componentes/Layout";
 import { Alertas } from "./paginas/Alertas";
 import { Cierres } from "./paginas/Cierres";
 import { DetalleAlerta } from "./paginas/DetalleAlerta";
-import { EnConstruccion } from "./paginas/EnConstruccion";
+import { Directorio } from "./paginas/Directorio";
+import { Estructura } from "./paginas/Estructura";
+import { FichaPersona } from "./paginas/FichaPersona";
 import { Inicio } from "./paginas/Inicio";
 import { Login } from "./paginas/Login";
 import { NoEncontrada } from "./paginas/NoEncontrada";
+import { Perfil } from "./paginas/Perfil";
 import { RutaModulo, RutaProtegida } from "./sesion/Rutas";
 import { SesionProvider } from "./sesion/SesionContext";
 
@@ -20,9 +23,10 @@ export function App() {
           <Route element={<RutaProtegida />}>
             <Route element={<Layout />}>
               <Route index element={<Inicio />} />
-              <Route path="perfil" element={<RutaModulo codigo="MI_PERFIL"><EnConstruccion titulo="Mi perfil" /></RutaModulo>} />
-              <Route path="directorio" element={<RutaModulo codigo="DIRECTORIO"><EnConstruccion titulo="Directorio" /></RutaModulo>} />
-              <Route path="estructura" element={<RutaModulo codigo="ESTRUCTURA"><EnConstruccion titulo="Estructura" /></RutaModulo>} />
+              <Route path="perfil" element={<RutaModulo codigo="MI_PERFIL"><Perfil /></RutaModulo>} />
+              <Route path="directorio" element={<RutaModulo codigo="DIRECTORIO"><Directorio /></RutaModulo>} />
+              <Route path="directorio/:id" element={<RutaModulo codigo="DIRECTORIO"><FichaPersona /></RutaModulo>} />
+              <Route path="estructura" element={<RutaModulo codigo="ESTRUCTURA"><Estructura /></RutaModulo>} />
               <Route path="cierres" element={<RutaModulo codigo="CIERRES"><Cierres /></RutaModulo>} />
               <Route path="alertas" element={<RutaModulo codigo="ALERTAS"><Alertas /></RutaModulo>} />
               <Route path="alertas/:id" element={<RutaModulo codigo="ALERTAS"><DetalleAlerta /></RutaModulo>} />
