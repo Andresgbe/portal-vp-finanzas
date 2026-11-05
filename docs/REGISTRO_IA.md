@@ -54,6 +54,11 @@ La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok,
 
 **Resultado:** se diseñaron las vistas en un lienzo con datos ficticios de la semilla, se iteró dos veces y se implementaron en React. Se verificó en un navegador real con login por la interfaz, con tres cuentas (Contraloría, Tesorería y Colaborador), y el recorrido de la demo contra la API. La IA dejó el vidrio más opaco en las pantallas con montos para que se pudieran leer.
 
+### Prompt 9: Pestaña de departamentos (Claude Code)
+> "No veo los departamentos, y quiero una pestaña extra que los muestre."
+
+**Resultado:** se agregó el módulo `DEPARTAMENTOS` desde el backend, para que el menú siga saliendo de la API y no de un rol escrito en el frontend. El Administrador ve los 4 departamentos y los demás roles solo el propio, como pide el enunciado; hay una prueba que lo verifica.
+
 <!-- Agrega aquí los prompts importantes que uses en Claude Code (frontend, deploy...) -->
 
 ---

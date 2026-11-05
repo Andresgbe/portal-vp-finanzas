@@ -109,16 +109,19 @@ APELLIDOS = ["Mendoza", "Rivas", "Guerrero", "Linares", "Carrasco", "Zambrano", 
 
 MODULOS = [
     ("MI_PERFIL", "Mi perfil", "Tus datos, tu cargo y tus funciones.", 1),
-    ("DIRECTORIO", "Directorio", "Colaboradores del departamento.", 2),
-    ("ESTRUCTURA", "Estructura organizacional", "Cargos, niveles y funciones por departamento.", 3),
-    ("CIERRES", "Cierres de caja", "Registro y consulta de cierres de caja de tiendas.", 4),
-    ("ALERTAS", "Alertas de anomalías", "Gestión de alertas detectadas en los cierres de caja.", 5),
+    ("DEPARTAMENTOS", "Departamentos", "Departamentos de la VP de Finanzas.", 2),
+    ("DIRECTORIO", "Directorio", "Colaboradores del departamento.", 3),
+    ("ESTRUCTURA", "Estructura organizacional", "Cargos, niveles y funciones por departamento.", 4),
+    ("CIERRES", "Cierres de caja", "Registro y consulta de cierres de caja de tiendas.", 5),
+    ("ALERTAS", "Alertas de anomalías", "Gestión de alertas detectadas en los cierres de caja.", 6),
 ]
 
 # (módulo, rol, departamento o None = cualquiera, nivel)
 PERMISOS = [
     ("MI_PERFIL", "JEFE_DEPTO", None, "lectura"),
     ("MI_PERFIL", "COLABORADOR", None, "lectura"),
+    ("DEPARTAMENTOS", "JEFE_DEPTO", None, "lectura"),
+    ("DEPARTAMENTOS", "COLABORADOR", None, "lectura"),
     ("DIRECTORIO", "JEFE_DEPTO", None, "lectura"),
     ("DIRECTORIO", "COLABORADOR", None, "lectura"),
     ("ESTRUCTURA", "JEFE_DEPTO", None, "lectura"),

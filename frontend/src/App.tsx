@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "./componentes/Layout";
 import { Alertas } from "./paginas/Alertas";
 import { Cierres } from "./paginas/Cierres";
+import { Departamentos } from "./paginas/Departamentos";
 import { DetalleAlerta } from "./paginas/DetalleAlerta";
 import { Directorio } from "./paginas/Directorio";
 import { Estructura } from "./paginas/Estructura";
@@ -24,6 +25,7 @@ export function App() {
             <Route element={<Layout />}>
               <Route index element={<Inicio />} />
               <Route path="perfil" element={<RutaModulo codigo="MI_PERFIL"><Perfil /></RutaModulo>} />
+              <Route path="departamentos" element={<RutaModulo codigo="DEPARTAMENTOS"><Departamentos /></RutaModulo>} />
               <Route path="directorio" element={<RutaModulo codigo="DIRECTORIO"><Directorio /></RutaModulo>} />
               <Route path="directorio/:id" element={<RutaModulo codigo="DIRECTORIO"><FichaPersona /></RutaModulo>} />
               <Route path="estructura" element={<RutaModulo codigo="ESTRUCTURA"><Estructura /></RutaModulo>} />
