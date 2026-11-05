@@ -64,6 +64,11 @@ La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok,
 
 **Decisión mía:** cambié la navegación que había propuesto la IA, que tenía dos pestañas separadas con filtros. Ahora hay una sola pestaña: Departamentos lleva al directorio de cada uno. El alcance por rol sigue validándose en el backend.
 
+### Prompt 11: Inhabilitar cierres (Claude Code)
+> "Que me deje inhabilitar transacciones. Recuerda que hay distintos tipos de usuarios; define eso en la BD."
+
+**Resultado:** la IA advirtió el riesgo de que quien registra pudiera esconder un faltante y preguntó quién debía poder hacerlo. Elegí Contraloría y Admin, nunca quien registró el cierre, y que las alertas pendientes se descartaran. Se crearon `permiso_accion` y `cierre_historial`; una prueba confirma que quitar la fila de la base de datos quita el permiso.
+
 <!-- Agrega aquí los prompts importantes que uses en Claude Code (frontend, deploy...) -->
 
 ---
@@ -77,7 +82,9 @@ La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok,
 | Separar funciones: Tesorería registra y Contraloría revisa | Aceptada | Es un control interno real de finanzas. |
 | Cierres duplicados como alerta, no como rechazo | Aceptada | No sabemos si existen turnos dobles; rechazarlos perdería información. |
 | JWT en cookie httpOnly | Aceptada | Ver la sección 3. |
-| *(completar)* | | |
+| Dos pestañas (Departamentos y Directorio) con filtros | Modificada | Yo pedí una sola pestaña: se elige el departamento y aparece su directorio. Es más clara. |
+| Tesorería podría inhabilitar cierres | Rechazada | La IA presentó las opciones; elegí Contraloría y Admin porque Tesorería registra y podría ocultar un faltante. |
+| Regla de quién puede inhabilitar | Modificada | Pedí que quedara definida en la base de datos, por tipo de usuario. Se creó la tabla `permiso_accion`. |
 
 ---
 

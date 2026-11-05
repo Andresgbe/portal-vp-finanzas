@@ -37,7 +37,22 @@ uvicorn app.main:app --reload          # http://localhost:8000/docs
 ```
 
 ## Levantar el frontend
-*(Paso 4: pendiente)*
+Con el backend corriendo, en otra terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev                            # http://localhost:5173
+```
+
+Vite reenvía `/api` al backend, así que el navegador trabaja con un solo origen y la cookie de sesión funciona sin abrir CORS.
+
+Otros comandos, desde `frontend/`:
+
+```powershell
+npm test                               # pruebas de formato de montos
+npm run build                          # genera frontend/dist, que FastAPI sirve en http://localhost:8000
+```
 
 ## Variables de entorno
 

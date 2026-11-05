@@ -1,6 +1,6 @@
 # Documento de decisiones técnicas
 
-> Estado: backend completo. Falta agregar la sección del frontend (Paso 4) y el deploy (Paso 6).
+> Estado: backend y frontend completos, funcionando en local. El deploy está planificado y no ejecutado (ver la sección 6).
 
 ## 1. Stack elegido y por qué
 
@@ -36,6 +36,10 @@ erDiagram
     usuario ||--o{ cierre_caja : registra
     cierre_caja ||--o{ alerta : genera
     alerta ||--o{ alerta_historial : ""
+    cierre_caja ||--o{ cierre_historial : ""
+    usuario ||--o{ cierre_historial : inhabilita
+    rol ||--o{ permiso_accion : ""
+    departamento ||--o{ permiso_accion : "opcional"
     usuario ||--o{ alerta_historial : gestiona
 ```
 
@@ -76,6 +80,13 @@ Los umbrales están en la tabla `parametro_deteccion`, no fijos en el código.
 3. Cada cambio queda en `alerta_historial` (solo inserción): quién, cuándo, estado anterior y nuevo, comentario.
 4. **Segregación de funciones:** quien registró un cierre no puede gestionar sus alertas, ni siquiera el Admin.
 5. **Concurrencia:** la gestión usa un `UPDATE ... WHERE estado = 'pendiente'`. Si dos personas gestionan la misma alerta a la vez, solo una lo logra; la otra recibe 409.
+6. **Inhabilitar un cierre:** un cierre nunca se borra. Queda marcado, con motivo obligatorio, y el cambio se guarda en `cierre_historial`. Sus alertas pendientes pasan a descartadas y deja de contar para duplicados y reincidencia. Las alertas ya gestionadas no cambian.
+
+### Quién puede inhabilitar
+
+Se define en la tabla `permiso_accion`, por tipo de usuario y departamento, no en el código: quitar una fila quita el permiso, y hay una prueba que lo comprueba. Hoy pueden el Administrador y el Jefe de Contraloría.
+
+No puede Tesorería, porque es quien registra: podría esconder un faltante propio. Tampoco puede quien registró ese cierre, ni siquiera el Administrador.
 
 ## 4. Decisiones de seguridad
 
@@ -94,8 +105,35 @@ Los umbrales están en la tabla `parametro_deteccion`, no fijos en el código.
 | Inyección SQL | ORM con consultas parametrizadas. |
 | Exposición de datos | Los esquemas de salida listan campos explícitos (nunca `password_hash`); `/docs` deshabilitado en producción; cabeceras `nosniff`, `X-Frame-Options: DENY`, `Cache-Control: no-store`. |
 | Datos personales | 100 % ficticios; correos en el dominio reservado `.example`. |
+| Ocultar un faltante inhabilitando su cierre | Permiso en `permiso_accion`, sin incluir a Tesorería; quien registró no puede; motivo obligatorio y bitácora de solo inserción. |
+| Errores que filtran datos | Las respuestas 422 no repiten lo enviado, que podía incluir una contraseña. |
+| Configuración insegura en producción | La app no arranca con un `APP_ENV` desconocido ni con `COOKIE_SECURE=false` en producción. |
 
-## 5. Limitaciones conocidas y qué haría con más tiempo
+## 5. Frontend
+
+| Decisión | Por qué |
+|---|---|
+| **Un único cliente de API** (`api/cliente.ts`) | El manejo de 401, 403 y errores queda en un solo lugar. |
+| **Sesión en memoria** | Al cargar se consulta `/auth/me`. Ni el token ni el rol se guardan en el navegador. |
+| **Menú armado con `modulos`** | Los permisos los decide el backend. Ocultar algo en pantalla es solo comodidad: el endpoint responde 403 de todos modos. |
+| **Montos como texto** | Se formatean sin `parseFloat` para evitar errores de redondeo, con pruebas en `formato.test.ts`. |
+| **Sin librería de componentes** | CSS propio con efecto de vidrio, más fácil de explicar y sin dependencias pesadas. |
+| **Departamentos lleva al directorio** | Una sola pestaña: se elige el departamento y aparece su directorio. Cada rol ve solo su alcance. |
+
+La vista de transposición solo presenta los datos: compara los dos montos carácter por carácter y resalta los distintos. Quien decide que es una transposición es el backend.
+
+## 6. Limitaciones conocidas y qué haría con más tiempo
+
+- **Deploy sin ejecutar.** El plan es un servicio en Render, con el frontend compilado y uvicorn, y PostgreSQL en Supabase, publicando desde `master`.
+- **No probado en PostgreSQL.** El cambio está preparado con `DATABASE_URL` y `database/schema_postgresql.sql`, pero las pruebas solo corren en SQLite.
+- **Sin integración continua, registro de eventos ni cabeceras CSP y HSTS.** Están en los tickets de la fase 6.
+- **`alerta_historial` y `cierre_historial` son de solo inserción por convención del código:** la base de datos aún no lo impide. Un trigger lo reforzaría (ticket #17).
+- **Logout:** borra la cookie, pero el token sigue siendo válido hasta expirar.
+- **El bloqueo por intentos revela qué cuentas existen:** un correo existente termina respondiendo 429 y uno inexistente nunca.
+- **Sin paginación:** es aceptable con 60 cierres, no con datos reales.
+- **Migraciones:** el esquema se crea con `create_all`. Con datos reales usaría Alembic.
+- **Reincidencia al inhabilitar:** una alerta de reincidencia que ya se creó en otro cierre no se recalcula.
+- **Inhabilitar es definitivo:** no hay forma de reactivar un cierre desde el portal.
 
 - **SQLite guarda `NUMERIC` como decimal aproximado (`REAL`).** Se mitiga redondeando a 2 decimales al leer; en PostgreSQL no ocurre.
 - **El bloqueo por intentos es por cuenta, no por IP.** Con más tiempo agregaría un límite por IP (rate limiting) y alertas de seguridad.

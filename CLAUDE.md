@@ -20,7 +20,7 @@ El enunciado evalúa **cómo se usa la IA con criterio**: Andrés debe entender 
 | Backend | Python 3.12/3.13 · FastAPI · SQLAlchemy 2.0 · Pydantic v2 |
 | Base de datos | SQLite en local, PostgreSQL en producción (se cambia solo con `DATABASE_URL`) |
 | Auth | JWT firmado en **cookie httpOnly + SameSite=Strict** · contraseñas con bcrypt |
-| Frontend | **React + TypeScript + Vite + React Router** (pendiente, carpeta `frontend/`) |
+| Frontend | **React + TypeScript + Vite + React Router** (carpeta `frontend/`) |
 | Pruebas | pytest (todas pasan) |
 
 ## Comandos
@@ -43,7 +43,7 @@ Variables en `.env` (raíz; plantilla en `.env.example`): `APP_ENV`, `DATABASE_U
 backend/app/
   config.py        variables de entorno (falla si falta JWT_SECRET)
   database.py      engine; activa PRAGMA foreign_keys en SQLite
-  models.py        16 tablas (organización, seguridad, cierres/alertas)
+  models.py        19 tablas (organización, seguridad, cierres/alertas)
   security.py      bcrypt + JWT (el token solo lleva el ID de usuario)
   deps.py          TODA la autorización: usuario_actual -> requiere_modulo -> verificar_departamento
   deteccion.py     motor de reglas de anomalías (funciones puras + reglas con BD)
@@ -63,7 +63,8 @@ docs/DECISIONES.md, docs/REGISTRO_IA.md
 2. **Nunca** guardar el token en `localStorage`/`sessionStorage` ni leerlo desde JS. El navegador manda la cookie solo. El frontend sabe quién está logueado llamando a `GET /api/auth/me`.
 3. Nada de secretos en el código ni en commits. `.env` está en `.gitignore`.
 4. Montos siempre `Decimal`/`NUMERIC(12,2)`, nunca `float`. En el frontend llegan como **string** (`"6765.86"`); formatear para mostrar sin hacer aritmética en float.
-5. `alerta_historial` es de **solo inserción**: nunca UPDATE ni DELETE.
+5. `alerta_historial` y `cierre_historial` son de **solo inserción**: nunca UPDATE ni DELETE.
+7. Las acciones sensibles se definen por tipo de usuario en la tabla `permiso_accion`, con `Depends(requiere_accion(...))`.
 6. No abrir CORS con `*`. En desarrollo se usa el proxy de Vite (mismo origen); en producción FastAPI sirve el frontend.
 
 ## Roles y módulos
@@ -80,7 +81,10 @@ El departamento de un colaborador **se obtiene de su cargo** (no hay `departamen
 | `ALERTAS` | Jefe Contraloría (escritura), Jefe Tesorería (lectura), Admin |
 
 **Segregación de funciones:** Tesorería registra cierres; Contraloría gestiona alertas; quien registró
-un cierre no puede gestionar sus alertas (ni siquiera Admin → 403).
+un cierre no puede gestionar sus alertas ni inhabilitarlo (ni siquiera Admin → 403).
+
+**Inhabilitar cierres:** Admin y Jefe de Contraloría (`permiso_accion`). Motivo obligatorio; el cierre no se borra,
+sus alertas pendientes se descartan y deja de contar para duplicados y reincidencia.
 
 ## Reglas de detección (`deteccion.py`, umbrales en tabla `parametro_deteccion`)
 
@@ -101,6 +105,7 @@ GET  /colaboradores/{id}                           GET /departamentos/{id}/estru
 GET  /tiendas    GET /cajeros?tienda_id=
 GET  /cierres?tienda_id&cajero_id&desde&hasta&solo_con_alertas
 POST /cierres {tienda_id,cajero_id,fecha,monto_declarado,monto_sistema} -> incluye alertas_generadas
+POST /cierres/{id}/inhabilitar {motivo}
 GET  /alertas?estado&regla&severidad&cajero_id     (cada alerta trae puede_gestionar y motivo_no_gestionable)
 GET  /alertas/resumen    GET /alertas/parametros   GET /alertas/{id} (con historial)
 POST /alertas/{id}/gestion {estado: revisada|descartada, comentario}
@@ -126,8 +131,8 @@ Fechas-hora en ISO con zona UTC.
 - [x] Paso 1 · Modelo de datos y semilla
 - [x] Paso 2 · Login, roles y control de acceso (backend)
 - [x] Paso 3 · Detector de anomalías, alertas, historial, segregación de funciones
-- [ ] **Paso 4 · Frontend React** (ver especificación abajo)
-- [ ] Paso 5 · Completar `README.md`, `docs/DECISIONES.md` (sección frontend) y `docs/REGISTRO_IA.md`
+- [x] Paso 4 · Frontend React
+- [x] Paso 5 · `README.md`, `docs/DECISIONES.md` y `docs/REGISTRO_IA.md` (falta el error real que debe escribir Andrés, ticket #31)
 - [ ] Paso 6 · Deploy: un servicio en Render (build del frontend + uvicorn) y PostgreSQL en Supabase
 - [ ] Paso 7 · Presentación de 10 minutos
 
