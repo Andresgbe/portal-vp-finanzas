@@ -49,6 +49,11 @@ La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok,
 
 **Resultado:** se crearon las ramas `master` y `dev`, un milestone por fase, etiquetas, tickets y un tablero. La IA señaló que la imagen decía "SDCL" en vez de SDLC, y que los tickets del trabajo ya hecho debían quedar marcados como `retroactivo` y no presentarse como planificación previa.
 
+### Prompt 8: Diseño e interfaz (Claude Code)
+> "Usemos Claude Design, que sea una plataforma consistente, moderna e intuitiva, sin colores que sobresalgan." Luego: "Que el login tenga ver contraseña y fondo tipo glass" y "moderniza más las otras vistas".
+
+**Resultado:** se diseñaron las vistas en un lienzo con datos ficticios de la semilla, se iteró dos veces y se implementaron en React. Se verificó en un navegador real con login por la interfaz, con cuatro roles, y el recorrido de la demo contra la API. La IA dejó el vidrio más opaco en las pantallas con montos para que se pudieran leer.
+
 <!-- Agrega aquí los prompts importantes que uses en Claude Code (frontend, deploy...) -->
 
 ---
