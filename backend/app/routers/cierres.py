@@ -10,7 +10,7 @@ Segregación de funciones (control interno):
 """
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import case, func, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -19,6 +19,7 @@ from ..deps import UsuarioActual, permisos_de, requiere_accion, requiere_modulo,
 from ..deteccion import detectar, reprocesar_todo
 from ..models import (Alerta, AlertaHistorial, Cajero, CierreCaja, CierreHistorial,
                       ParametroDeteccion, Tienda, Usuario)
+from ..reporte import generar_pdf_cierres
 from ..schemas import (AlertaDetalle, AlertaOut, AlertaResumen, CajeroOut, CajeroRiesgo,
                        CierreCreado, CierreIn, CierreOut, ConteoOut, GestionIn,
                        HistorialOut, InhabilitarIn, ParametroOut, ResumenAlertas, TiendaOut)
@@ -121,13 +122,9 @@ def cajeros(tienda_id: int | None = None,
 
 
 # ================================================================ Cierres
-@router.get("/cierres", response_model=list[CierreOut])
-def listar_cierres(
-    tienda_id: int | None = None, cajero_id: int | None = None,
-    desde: date | None = None, hasta: date | None = None,
-    solo_con_alertas: bool = False,
-    actual: UsuarioActual = Depends(requiere_modulo("CIERRES")), db: Session = Depends(get_db),
-):
+def _consulta_cierres(tienda_id: int | None, cajero_id: int | None, desde: date | None,
+                      hasta: date | None, solo_con_alertas: bool):
+    """La misma consulta para la tabla y el PDF: el reporte siempre coincide con la pantalla."""
     q = select(CierreCaja).options(*_CARGA_CIERRE).order_by(CierreCaja.fecha.desc(), CierreCaja.id.desc())
     if tienda_id:
         q = q.where(CierreCaja.tienda_id == tienda_id)
@@ -139,8 +136,46 @@ def listar_cierres(
         q = q.where(CierreCaja.fecha <= hasta)
     if solo_con_alertas:
         q = q.where(CierreCaja.alertas.any())
+    return q
+
+
+@router.get("/cierres", response_model=list[CierreOut])
+def listar_cierres(
+    tienda_id: int | None = None, cajero_id: int | None = None,
+    desde: date | None = None, hasta: date | None = None,
+    solo_con_alertas: bool = False,
+    actual: UsuarioActual = Depends(requiere_modulo("CIERRES")), db: Session = Depends(get_db),
+):
+    q = _consulta_cierres(tienda_id, cajero_id, desde, hasta, solo_con_alertas)
     permiso = tiene_accion(db, actual, INHABILITAR_CIERRE)
     return [CierreOut(**_cierre_out(c, actual, permiso)) for c in db.scalars(q)]
+
+
+@router.get("/cierres/reporte.pdf")
+def reporte_cierres(
+    tienda_id: int | None = None, cajero_id: int | None = None,
+    desde: date | None = None, hasta: date | None = None,
+    solo_con_alertas: bool = False,
+    actual: UsuarioActual = Depends(requiere_modulo("CIERRES")), db: Session = Depends(get_db),
+):
+    """Reporte en PDF con los mismos permisos y filtros que la tabla."""
+    cierres = list(db.scalars(_consulta_cierres(tienda_id, cajero_id, desde, hasta, solo_con_alertas)))
+
+    filtros = []
+    if tienda_id:
+        tienda = db.get(Tienda, tienda_id)
+        filtros.append(f"tienda {tienda.nombre if tienda else tienda_id}")
+    if desde:
+        filtros.append(f"desde {desde:%d/%m/%Y}")
+    if hasta:
+        filtros.append(f"hasta {hasta:%d/%m/%Y}")
+    if solo_con_alertas:
+        filtros.append("solo con alertas")
+
+    contenido = generar_pdf_cierres(cierres, actual.usuario.colaborador.nombre_completo,
+                                    ", ".join(filtros) or "ninguno")
+    return Response(contenido, media_type="application/pdf",
+                    headers={"Content-Disposition": 'attachment; filename="reporte-cierres.pdf"'})
 
 
 @router.post("/cierres", response_model=CierreCreado, status_code=status.HTTP_201_CREATED)

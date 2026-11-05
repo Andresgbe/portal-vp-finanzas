@@ -46,6 +46,7 @@ backend/app/
   models.py        19 tablas (organización, seguridad, cierres/alertas)
   security.py      bcrypt + JWT (el token solo lleva el ID de usuario)
   deps.py          TODA la autorización: usuario_actual -> requiere_modulo -> verificar_departamento
+  reporte.py       reporte de cierres en PDF (reportlab)
   deteccion.py     motor de reglas de anomalías (funciones puras + reglas con BD)
   schemas.py       entrada/salida de la API (nunca exponer password_hash)
   routers/auth.py, organizacion.py, cierres.py
@@ -106,6 +107,7 @@ GET  /tiendas    GET /cajeros?tienda_id=
 GET  /cierres?tienda_id&cajero_id&desde&hasta&solo_con_alertas
 POST /cierres {tienda_id,cajero_id,fecha,monto_declarado,monto_sistema} -> incluye alertas_generadas
 POST /cierres/{id}/inhabilitar {motivo}
+GET  /cierres/reporte.pdf (mismos filtros que /cierres)
 GET  /alertas?estado&regla&severidad&cajero_id     (cada alerta trae puede_gestionar y motivo_no_gestionable)
 GET  /alertas/resumen    GET /alertas/parametros   GET /alertas/{id} (con historial)
 POST /alertas/{id}/gestion {estado: revisada|descartada, comentario}

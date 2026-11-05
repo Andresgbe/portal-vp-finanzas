@@ -118,6 +118,7 @@ No puede Tesorería, porque es quien registra: podría esconder un faltante prop
 | **Menú armado con `modulos`** | Los permisos los decide el backend. Ocultar algo en pantalla es solo comodidad: el endpoint responde 403 de todos modos. |
 | **Montos como texto** | Se formatean sin `parseFloat` para evitar errores de redondeo, con pruebas en `formato.test.ts`. |
 | **Sin librería de componentes** | CSS propio con efecto de vidrio, más fácil de explicar y sin dependencias pesadas. |
+| **PDF generado en el backend** | Usa los mismos permisos y filtros que la tabla. Generarlo en el navegador obligaría a confiar en datos del cliente. |
 | **Departamentos lleva al directorio** | Una sola pestaña: se elige el departamento y aparece su directorio. Cada rol ve solo su alcance. |
 
 La vista de transposición solo presenta los datos: compara los dos montos carácter por carácter y resalta los distintos. Quien decide que es una transposición es el backend.
