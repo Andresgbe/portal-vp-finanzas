@@ -6,11 +6,13 @@ Producción:  la misma app sirve también el frontend compilado (frontend/dist),
 """
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
+from .errores import manejar_error_validacion
 from .routers import auth, cierres, organizacion
 
 app = FastAPI(
@@ -21,6 +23,8 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None if settings.is_production else "/openapi.json",
 )
+
+app.add_exception_handler(RequestValidationError, manejar_error_validacion)
 
 app.include_router(auth.router)
 app.include_router(organizacion.router)
@@ -45,14 +49,24 @@ def health():
 
 
 # ---------- Frontend compilado (solo si existe frontend/dist) ----------
+def montar_frontend(aplicacion: FastAPI, dist: Path) -> None:
+    dist = dist.resolve()
+    aplicacion.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    @aplicacion.get("/{ruta:path}", include_in_schema=False)
+    def spa(ruta: str):
+        # Una ruta /api que llega hasta aquí no existe. Sin este 404, el frontend
+        # recibiría la página HTML con un 200 y lo tomaría como una respuesta correcta.
+        if ruta == "api" or ruta.startswith("api/"):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Ruta no encontrada")
+
+        # Cualquier otra ruta la resuelve React Router
+        archivo = (dist / ruta).resolve()
+        if ruta and archivo.is_file() and dist in archivo.parents:
+            return FileResponse(archivo)
+        return FileResponse(dist / "index.html")
+
+
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 if DIST.exists():
-    app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
-
-    @app.get("/{ruta:path}", include_in_schema=False)
-    def spa(ruta: str):
-        # Cualquier ruta que no sea /api la resuelve React Router
-        archivo = (DIST / ruta).resolve()
-        if ruta and archivo.is_file() and DIST in archivo.parents:
-            return FileResponse(archivo)
-        return FileResponse(DIST / "index.html")
+    montar_frontend(app, DIST)
