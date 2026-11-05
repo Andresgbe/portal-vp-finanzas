@@ -141,6 +141,16 @@ class CierreOut(BaseModel):
     registrado_por: str | None
     registrado_en: FechaUTC
     alertas: list[AlertaResumen]
+    estado: str
+    inhabilitado_por: str | None
+    inhabilitado_en: FechaUTC | None
+    motivo_inhabilitacion: str | None
+    puede_inhabilitar: bool
+
+
+class InhabilitarIn(BaseModel):
+    # 450 y no 500: el motivo se copia al historial de cada alerta con un prefijo
+    motivo: str = Field(min_length=10, max_length=450)
 
 
 class CierreCreado(CierreOut):

@@ -112,18 +112,19 @@ def _buscar_duplicado(db: Session, cierre: CierreCaja) -> CierreCaja | None:
     return db.scalar(
         select(CierreCaja)
         .where(CierreCaja.cajero_id == cierre.cajero_id, CierreCaja.fecha == cierre.fecha,
-               CierreCaja.id < cierre.id)
+               CierreCaja.id < cierre.id, CierreCaja.estado == "activo")
         .order_by(CierreCaja.id)
     )
 
 
 def _anomalias_en_ventana(db: Session, cierre: CierreCaja, dias: int) -> list[CierreCaja]:
-    """Cierres del mismo cajero, en la ventana, con alerta de monto no descartada."""
+    """Cierres activos del mismo cajero, en la ventana, con alerta de monto no descartada."""
     desde = cierre.fecha - timedelta(days=dias)
     return list(db.scalars(
         select(CierreCaja).distinct()
         .join(Alerta, Alerta.cierre_id == CierreCaja.id)
         .where(CierreCaja.cajero_id == cierre.cajero_id,
+               CierreCaja.estado == "activo",
                CierreCaja.fecha.between(desde, cierre.fecha),
                Alerta.regla.in_(REGLAS_DE_MONTO),
                Alerta.estado != "descartada")
@@ -185,9 +186,9 @@ def detectar(db: Session, cierre: CierreCaja, p: dict[str, Decimal] | None = Non
 
 
 def reprocesar_todo(db: Session) -> int:
-    """Corre la detección sobre todos los cierres en orden cronológico."""
+    """Corre la detección sobre los cierres activos en orden cronológico."""
     p = cargar_parametros(db)
     total = 0
-    for cierre in db.scalars(select(CierreCaja).order_by(CierreCaja.fecha, CierreCaja.id)).all():
+    for cierre in db.scalars(select(CierreCaja).where(CierreCaja.estado == "activo").order_by(CierreCaja.fecha, CierreCaja.id)).all():
         total += len(detectar(db, cierre, p))
     return total

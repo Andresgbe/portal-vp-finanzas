@@ -5,6 +5,8 @@ Segregación de funciones (control interno):
   - Contraloría GESTIONA las alertas       (módulo ALERTAS, escritura)
   - Nadie puede gestionar alertas de un cierre que registró él mismo,
     ni siquiera el Administrador.
+  - Quién puede inhabilitar un cierre se define en la tabla permiso_accion.
+    Quien lo registró tampoco puede: así no se esconde un faltante propio.
 """
 from datetime import date
 
@@ -13,20 +15,23 @@ from sqlalchemy import case, func, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from ..database import get_db
-from ..deps import UsuarioActual, permisos_de, requiere_modulo
+from ..deps import UsuarioActual, permisos_de, requiere_accion, requiere_modulo, tiene_accion
 from ..deteccion import detectar, reprocesar_todo
-from ..models import (Alerta, AlertaHistorial, Cajero, CierreCaja, ParametroDeteccion,
-                      Tienda, Usuario)
+from ..models import (Alerta, AlertaHistorial, Cajero, CierreCaja, CierreHistorial,
+                      ParametroDeteccion, Tienda, Usuario)
 from ..schemas import (AlertaDetalle, AlertaOut, AlertaResumen, CajeroOut, CajeroRiesgo,
                        CierreCreado, CierreIn, CierreOut, ConteoOut, GestionIn,
-                       HistorialOut, ParametroOut, ResumenAlertas, TiendaOut)
+                       HistorialOut, InhabilitarIn, ParametroOut, ResumenAlertas, TiendaOut)
 
 router = APIRouter(prefix="/api", tags=["cierres y alertas"])
+
+INHABILITAR_CIERRE = "INHABILITAR_CIERRE"
 
 _CARGA_CIERRE = (
     joinedload(CierreCaja.tienda), joinedload(CierreCaja.cajero),
     joinedload(CierreCaja.registrado_por).joinedload(Usuario.colaborador),
     selectinload(CierreCaja.alertas),
+    selectinload(CierreCaja.historial).joinedload(CierreHistorial.usuario).joinedload(Usuario.colaborador),
 )
 _CARGA_ALERTA = (
     joinedload(Alerta.cierre).joinedload(CierreCaja.tienda),
@@ -39,7 +44,9 @@ def _nombre_usuario(u: Usuario | None) -> str:
     return u.colaborador.nombre_completo if u else "Sistema"
 
 
-def _cierre_out(c: CierreCaja) -> dict:
+def _cierre_out(c: CierreCaja, actual: UsuarioActual, tiene_permiso: bool) -> dict:
+    # Quién lo inhabilitó sale del historial: no se duplica en la tabla cierre_caja
+    baja = c.historial[-1] if c.estado == "inhabilitado" and c.historial else None
     return dict(
         id=c.id, fecha=c.fecha, tienda_id=c.tienda_id, tienda=c.tienda.nombre,
         cajero_id=c.cajero_id, cajero=c.cajero.nombre,
@@ -49,6 +56,12 @@ def _cierre_out(c: CierreCaja) -> dict:
         registrado_en=c.registrado_en,
         alertas=[AlertaResumen(id=a.id, regla=a.regla, severidad=a.severidad, estado=a.estado)
                  for a in c.alertas],
+        estado=c.estado,
+        inhabilitado_por=_nombre_usuario(baja.usuario) if baja else None,
+        inhabilitado_en=baja.fecha if baja else None,
+        motivo_inhabilitacion=baja.motivo if baja else None,
+        puede_inhabilitar=(tiene_permiso and c.estado == "activo"
+                           and c.registrado_por_id != actual.id),
     )
 
 
@@ -113,7 +126,7 @@ def listar_cierres(
     tienda_id: int | None = None, cajero_id: int | None = None,
     desde: date | None = None, hasta: date | None = None,
     solo_con_alertas: bool = False,
-    _: UsuarioActual = Depends(requiere_modulo("CIERRES")), db: Session = Depends(get_db),
+    actual: UsuarioActual = Depends(requiere_modulo("CIERRES")), db: Session = Depends(get_db),
 ):
     q = select(CierreCaja).options(*_CARGA_CIERRE).order_by(CierreCaja.fecha.desc(), CierreCaja.id.desc())
     if tienda_id:
@@ -126,7 +139,8 @@ def listar_cierres(
         q = q.where(CierreCaja.fecha <= hasta)
     if solo_con_alertas:
         q = q.where(CierreCaja.alertas.any())
-    return [CierreOut(**_cierre_out(c)) for c in db.scalars(q)]
+    permiso = tiene_accion(db, actual, INHABILITAR_CIERRE)
+    return [CierreOut(**_cierre_out(c, actual, permiso)) for c in db.scalars(q)]
 
 
 @router.post("/cierres", response_model=CierreCreado, status_code=status.HTTP_201_CREATED)
@@ -148,7 +162,48 @@ def registrar_cierre(datos: CierreIn,
     db.commit()
 
     cierre = db.scalar(select(CierreCaja).options(*_CARGA_CIERRE).where(CierreCaja.id == cierre.id))
-    return CierreCreado(**_cierre_out(cierre), alertas_generadas=len(nuevas))
+    permiso = tiene_accion(db, actual, INHABILITAR_CIERRE)
+    return CierreCreado(**_cierre_out(cierre, actual, permiso), alertas_generadas=len(nuevas))
+
+
+@router.post("/cierres/{cierre_id}/inhabilitar", response_model=CierreOut)
+def inhabilitar_cierre(cierre_id: int, datos: InhabilitarIn,
+                       actual: UsuarioActual = Depends(requiere_modulo("CIERRES")),
+                       _: UsuarioActual = Depends(requiere_accion(INHABILITAR_CIERRE)),
+                       db: Session = Depends(get_db)):
+    """Marca el cierre como inhabilitado, sin borrarlo, y descarta sus alertas pendientes."""
+    cierre = db.get(CierreCaja, cierre_id)
+    if cierre is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Cierre no encontrado")
+    if cierre.registrado_por_id == actual.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            "Segregación de funciones: no puedes inhabilitar un cierre que registraste")
+
+    motivo = datos.motivo.strip()
+    # UPDATE condicional: si dos personas lo intentan a la vez, solo una lo logra
+    resultado = db.execute(
+        update(CierreCaja).where(CierreCaja.id == cierre_id, CierreCaja.estado == "activo")
+        .values(estado="inhabilitado")
+    )
+    if resultado.rowcount == 0:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "El cierre ya está inhabilitado")
+
+    db.add(CierreHistorial(cierre_id=cierre_id, estado_anterior="activo", estado_nuevo="inhabilitado",
+                           usuario_id=actual.id, motivo=motivo))
+
+    # Todo en la misma transacción: o queda el cierre y sus alertas, o no queda nada
+    pendientes = db.scalars(select(Alerta).where(Alerta.cierre_id == cierre_id,
+                                                 Alerta.estado == "pendiente")).all()
+    for alerta in pendientes:
+        alerta.estado = "descartada"
+        db.add(AlertaHistorial(alerta_id=alerta.id, estado_anterior="pendiente", estado_nuevo="descartada",
+                               usuario_id=actual.id, comentario=f"Cierre inhabilitado: {motivo}"))
+    db.commit()
+    db.expire_all()
+
+    cierre = db.scalar(select(CierreCaja).options(*_CARGA_CIERRE).where(CierreCaja.id == cierre_id))
+    return CierreOut(**_cierre_out(cierre, actual, True))
 
 
 # ================================================================ Alertas

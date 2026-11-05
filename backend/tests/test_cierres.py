@@ -2,6 +2,11 @@
 from datetime import date, timedelta
 
 import pytest
+from sqlalchemy import delete
+
+from app.database import SessionLocal
+from app.deteccion import _anomalias_en_ventana
+from app.models import CierreCaja, PermisoAccion
 
 
 def _cierre(declarado: str, sistema: str, cajero_id=5, tienda_id=1, fecha=None):
@@ -130,6 +135,111 @@ def test_segregacion_quien_registra_no_gestiona_ni_siendo_admin(login):
     r = login("jefe_contraloria").post(f"/api/alertas/{alerta_id}/gestion",
                                        json={"estado": "revisada", "comentario": "Revisado por Contraloría"})
     assert r.status_code == 200
+
+
+# ------------------------------------------------------------ inhabilitar
+MOTIVO = "Error de carga confirmado con la tienda"
+
+
+def _cierre_con_alerta_pendiente(login):
+    alerta = login("jefe_contraloria").get("/api/alertas?estado=pendiente").json()[0]
+    return alerta["cierre_id"], alerta["id"]
+
+
+@pytest.mark.parametrize("quien", ["jefe_tesoreria", "jefe_contabilidad", "jefe_planificacion"])
+def test_solo_los_autorizados_inhabilitan(login, quien):
+    cierre_id, _ = _cierre_con_alerta_pendiente(login)
+    r = login(quien).post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": MOTIVO})
+    assert r.status_code == 403
+
+
+def test_colaborador_no_puede_inhabilitar(login):
+    cierre_id, _ = _cierre_con_alerta_pendiente(login)
+    r = login("colab_contraloria").post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": MOTIVO})
+    assert r.status_code == 403
+
+
+def test_contraloria_inhabilita_y_descarta_las_alertas_pendientes(login):
+    contraloria = login("jefe_contraloria")
+    cierre_id, alerta_id = _cierre_con_alerta_pendiente(login)
+
+    r = contraloria.post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": MOTIVO})
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert cuerpo["estado"] == "inhabilitado"
+    assert cuerpo["motivo_inhabilitacion"] == MOTIVO
+    assert cuerpo["inhabilitado_por"] == "Tomás Iriarte"
+    assert cuerpo["puede_inhabilitar"] is False
+
+    alerta = contraloria.get(f"/api/alertas/{alerta_id}").json()
+    assert alerta["estado"] == "descartada"
+    assert alerta["historial"][-1]["comentario"] == f"Cierre inhabilitado: {MOTIVO}"
+    assert alerta["historial"][-1]["usuario"] == "Tomás Iriarte"
+
+
+def test_el_cierre_inhabilitado_sigue_consultable(login):
+    contraloria = login("jefe_contraloria")
+    total = len(contraloria.get("/api/cierres").json())
+    cierre_id, _ = _cierre_con_alerta_pendiente(login)
+    contraloria.post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": MOTIVO})
+    assert len(contraloria.get("/api/cierres").json()) == total
+
+
+def test_inhabilitar_dos_veces_da_conflicto(login):
+    contraloria = login("jefe_contraloria")
+    cierre_id, _ = _cierre_con_alerta_pendiente(login)
+    assert contraloria.post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": MOTIVO}).status_code == 200
+    assert contraloria.post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": MOTIVO}).status_code == 409
+
+
+def test_inhabilitar_exige_motivo(login):
+    cierre_id, _ = _cierre_con_alerta_pendiente(login)
+    r = login("jefe_contraloria").post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": "corto"})
+    assert r.status_code == 422
+    assert "Motivo" in r.json()["detail"]
+
+
+def test_quien_registra_no_inhabilita_ni_siendo_admin(login):
+    admin = login("admin")
+    creado = admin.post("/api/cierres", json=_cierre("1000.00", "2000.00")).json()
+    assert creado["puede_inhabilitar"] is False
+    r = admin.post(f"/api/cierres/{creado['id']}/inhabilitar", json={"motivo": MOTIVO})
+    assert r.status_code == 403
+    # Otra persona autorizada sí puede
+    r = login("jefe_contraloria").post(f"/api/cierres/{creado['id']}/inhabilitar", json={"motivo": MOTIVO})
+    assert r.status_code == 200
+
+
+def test_el_permiso_se_define_en_la_base_de_datos(login):
+    """Si se quita la fila de permiso_accion, Contraloría pierde el permiso sin tocar código."""
+    cierre_id, _ = _cierre_con_alerta_pendiente(login)
+    contraloria = login("jefe_contraloria")
+    assert contraloria.get("/api/cierres").json()[0]["puede_inhabilitar"] is True
+
+    with SessionLocal() as db:
+        db.execute(delete(PermisoAccion).where(PermisoAccion.departamento_id.is_not(None)))
+        db.commit()
+
+    assert contraloria.get("/api/cierres").json()[0]["puede_inhabilitar"] is False
+    r = contraloria.post(f"/api/cierres/{cierre_id}/inhabilitar", json={"motivo": MOTIVO})
+    assert r.status_code == 403
+
+
+def test_el_cierre_inhabilitado_no_cuenta_para_reincidencia(login):
+    tesoreria = login("jefe_tesoreria")
+    primero = tesoreria.post("/api/cierres", json=_cierre("1000.00", "2000.00")).json()
+    ultimo = tesoreria.post("/api/cierres", json=_cierre("3000.00", "5000.00", fecha=date.today() - timedelta(days=1))).json()
+
+    # La ventana mira hacia atrás, así que se revisa desde el cierre más reciente
+    with SessionLocal() as db:
+        referencia = db.get(CierreCaja, primero["id"])
+        assert ultimo["id"] in {c.id for c in _anomalias_en_ventana(db, referencia, 30)}
+
+    login("jefe_contraloria").post(f"/api/cierres/{ultimo['id']}/inhabilitar", json={"motivo": MOTIVO})
+
+    with SessionLocal() as db:
+        referencia = db.get(CierreCaja, primero["id"])
+        assert ultimo["id"] not in {c.id for c in _anomalias_en_ventana(db, referencia, 30)}
 
 
 def test_descartar_alertas_evita_reincidencia_futura(login):
