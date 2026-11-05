@@ -70,7 +70,7 @@ function FormularioRegistro({ tiendas, alRegistrar }: { tiendas: Tienda[]; alReg
         <div className="campo">
           <label htmlFor="cajero">Cajero</label>
           <select id="cajero" required disabled={!tiendaId} value={cajeroId} onChange={(e) => setCajeroId(e.target.value)}>
-            <option value="">{tiendaId ? "Elige un cajero" : "Primero elige la tienda"}</option>
+            <option value="">{tiendaId ? "Elige un cajero" : "Falta la tienda"}</option>
             {cajeros.datos?.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
         </div>

@@ -36,9 +36,9 @@ Fuente: `Enunciado_Prueba_Tecnica_Candidato.pdf`.
 | Base de datos relacional normalizada, con al menos 4 departamentos | Hecho |
 | 8 a 12 colaboradores ficticios por departamento | Hecho: Contabilidad 9, Contraloría 10, Planificación 11, Tesorería 10 |
 | Login real y roles Administrador, Jefe y Colaborador, validados en el backend | Hecho |
-| Al menos 3 módulos visibles según el rol | API lista, **faltan las pantallas** |
-| Un proceso de negocio completo: detector de anomalías en cierres de caja | API lista, **faltan las pantallas** |
-| **Frontend con framework que consuma la API real** | **Pendiente** |
+| Al menos 3 módulos visibles según el rol | Hecho |
+| Un proceso de negocio completo: detector de anomalías en cierres de caja | Hecho |
+| Frontend con framework que consuma la API real | Hecho: React, TypeScript y Vite |
 | Secretos en `.env` y `.gitignore` correcto | Hecho |
 | Historial de Git que refleje el avance | Hecho: 8 commits |
 | README con instrucciones para levantar el proyecto | Parcial: falta el frontend |
