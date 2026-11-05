@@ -59,6 +59,11 @@ La IA propuso el modelo y las reglas calibradas con los datos. Respondí: **"Ok,
 
 **Resultado:** se agregó el módulo `DEPARTAMENTOS` desde el backend, para que el menú siga saliendo de la API y no de un rol escrito en el frontend. El Administrador ve los 4 departamentos y los demás roles solo el propio, como pide el enunciado; hay una prueba que lo verifica.
 
+### Prompt 10: Unir departamentos y directorio (Claude Code)
+> "No veo los departamentos. En vez de Directorio, ¿por qué no pones Departamento y que cada departamento, al seleccionarlo, muestre el directorio?"
+
+**Decisión mía:** cambié la navegación que había propuesto la IA, que tenía dos pestañas separadas con filtros. Ahora hay una sola pestaña: Departamentos lleva al directorio de cada uno. El alcance por rol sigue validándose en el backend.
+
 <!-- Agrega aquí los prompts importantes que uses en Claude Code (frontend, deploy...) -->
 
 ---

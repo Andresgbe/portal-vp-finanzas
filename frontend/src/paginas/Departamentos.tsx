@@ -10,15 +10,14 @@ export function Departamentos() {
   // El backend decide cuáles devuelve: los 4 al Administrador, solo el propio a los demás
   const { datos, error, cargando } = useCarga(() => api<DepartamentoResumen[]>("/departamentos"), []);
 
-  const veTodos = usuario!.rol === "ADMIN";
+  // El rol Colaborador solo ve a sus compañeros activos: no se le muestra el total
+  const esColaborador = usuario!.rol === "COLABORADOR";
 
   return (
     <>
       <div className="encabezado">
         <h1>Departamentos</h1>
-        <p className="subtitulo">
-          {veTodos ? "Departamentos de la Vicepresidencia de Finanzas." : "Tu departamento dentro de la Vicepresidencia de Finanzas."}
-        </p>
+        <p className="subtitulo">Elige un departamento para ver su directorio.</p>
       </div>
 
       {error && <MensajeError texto={error} />}
@@ -27,11 +26,11 @@ export function Departamentos() {
 
       <div className="rejilla-personas">
         {datos?.map((departamento) => (
-          <Link key={departamento.id} className="vidrio persona" to={`/directorio?departamento=${departamento.id}`}>
+          <Link key={departamento.id} className="vidrio persona" to={`/departamentos/${departamento.id}`}>
             <h2>{departamento.nombre}</h2>
             <p className="subtitulo">{departamento.descripcion}</p>
             <div className="pills">
-              <span className="pill pill-azul">{departamento.total_colaboradores} colaboradores</span>
+              {!esColaborador && <span className="pill pill-azul">{departamento.total_colaboradores} colaboradores</span>}
               <span className="pill pill-ok">{departamento.activos} activos</span>
             </div>
           </Link>
