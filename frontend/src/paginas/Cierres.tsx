@@ -5,7 +5,55 @@ import type { Cajero, Cierre, CierreCreado, Tienda } from "../api/tipos";
 import { EstadoCarga, MensajeError } from "../componentes/Estados";
 import { useCarga } from "../hooks/useCarga";
 import { useSesion } from "../sesion/SesionContext";
-import { esNegativo, formatDiferencia, formatFecha, formatMonto, normalizarMonto } from "../utils/formato";
+import { esNegativo, formatDiferencia, formatFecha, formatFechaHora, formatMonto, normalizarMonto } from "../utils/formato";
+
+function FormularioInhabilitar({ cierre, alCancelar, alInhabilitar }: {
+  cierre: Cierre;
+  alCancelar: () => void;
+  alInhabilitar: () => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  async function enviar(evento: FormEvent) {
+    evento.preventDefault();
+    setError(null);
+    setEnviando(true);
+    try {
+      await api<Cierre>(`/cierres/${cierre.id}/inhabilitar`, { motivo });
+      alInhabilitar();
+    } catch (e) {
+      setError((e as ErrorApi).message);
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <section className="vidrio tarjeta" aria-labelledby="titulo-inhabilitar">
+      <div className="encabezado">
+        <h2 id="titulo-inhabilitar">Inhabilitar el cierre #{cierre.id}</h2>
+        <p className="subtitulo">
+          {cierre.cajero} · {cierre.tienda} · {formatFecha(cierre.fecha)}. El cierre no se borra: queda
+          registrado quién lo inhabilitó y por qué, y sus alertas pendientes se descartan.
+        </p>
+      </div>
+      <form className="columna" style={{ gap: 12 }} onSubmit={enviar}>
+        <div className="campo">
+          <label htmlFor="motivo">Motivo</label>
+          <textarea id="motivo" autoFocus placeholder="Explica por qué se inhabilita (mínimo 10 caracteres)." value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+        </div>
+        {error && <MensajeError texto={error} />}
+        <div className="botones">
+          <button type="submit" className="boton boton-primario" disabled={enviando}>
+            {enviando ? "Inhabilitando…" : "Inhabilitar cierre"}
+          </button>
+          <button type="button" className="boton boton-secundario" onClick={alCancelar}>Cancelar</button>
+        </div>
+      </form>
+    </section>
+  );
+}
 
 function FormularioRegistro({ tiendas, alRegistrar }: { tiendas: Tienda[]; alRegistrar: () => void }) {
   const [tiendaId, setTiendaId] = useState("");
@@ -110,6 +158,8 @@ export function Cierres() {
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
   const [soloConAlertas, setSoloConAlertas] = useState(false);
+  const [aInhabilitar, setAInhabilitar] = useState<Cierre | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   // Mostrar el formulario es comodidad: quien decide si puede registrar es el backend (403)
   const puedeRegistrar = usuario?.modulos.find((m) => m.codigo === "CIERRES")?.nivel_acceso === "escritura";
@@ -136,6 +186,21 @@ export function Cierres() {
       </div>
 
       {puedeRegistrar && tiendas.datos && <FormularioRegistro tiendas={tiendas.datos} alRegistrar={cierres.recargar} />}
+
+      {aviso && <p className="estado estado-ok" role="status">{aviso}</p>}
+
+      {aInhabilitar && (
+        <FormularioInhabilitar
+          key={aInhabilitar.id}
+          cierre={aInhabilitar}
+          alCancelar={() => setAInhabilitar(null)}
+          alInhabilitar={() => {
+            setAviso(`Cierre #${aInhabilitar.id} inhabilitado.`);
+            setAInhabilitar(null);
+            cierres.recargar();
+          }}
+        />
+      )}
 
       <section className="vidrio tabla-marco">
         <form className="formulario-rejilla" style={{ padding: "16px 20px" }} onSubmit={(e) => e.preventDefault()}>
@@ -175,11 +240,13 @@ export function Cierres() {
                   <th className="num">Sistema</th>
                   <th className="num">Diferencia</th>
                   <th>Alertas</th>
+                  <th>Estado</th>
+                  <th><span className="oculto">Acción</span></th>
                 </tr>
               </thead>
               <tbody>
                 {cierres.datos.map((c) => (
-                  <tr key={c.id}>
+                  <tr key={c.id} className={c.estado === "inhabilitado" ? "fila-inhabilitada" : undefined}>
                     <td className="fecha">{formatFecha(c.fecha)}</td>
                     <td>{c.tienda}</td>
                     <td>{c.cajero}</td>
@@ -190,6 +257,25 @@ export function Cierres() {
                       {c.alertas.length === 0
                         ? <span className="pill pill-neutra">Sin alertas</span>
                         : <span className="pill pill-alta">{c.alertas.length === 1 ? "1 alerta" : `${c.alertas.length} alertas`}</span>}
+                    </td>
+                    <td>
+                      {c.estado === "activo" ? (
+                        <span className="pill pill-ok">Activo</span>
+                      ) : (
+                        <div className="baja-cierre">
+                          <span className="pill pill-neutra">Inhabilitado</span>
+                          <small>{c.motivo_inhabilitacion}</small>
+                          {c.inhabilitado_en && <small>{c.inhabilitado_por} · {formatFechaHora(c.inhabilitado_en)}</small>}
+                        </div>
+                      )}
+                    </td>
+                    <td className="num">
+                      {/* El backend decide si se puede: tabla permiso_accion y segregación de funciones */}
+                      {c.puede_inhabilitar && (
+                        <button type="button" className="ver ver-boton" onClick={() => { setAviso(null); setAInhabilitar(c); }}>
+                          Inhabilitar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

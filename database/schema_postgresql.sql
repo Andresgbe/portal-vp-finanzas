@@ -70,6 +70,19 @@ CREATE TABLE cargo (
 	FOREIGN KEY(nivel_id) REFERENCES nivel (id)
 );
 
+CREATE TABLE permiso_accion (
+	id SERIAL NOT NULL, 
+	accion VARCHAR(40) NOT NULL, 
+	rol_id INTEGER NOT NULL, 
+	departamento_id INTEGER, 
+	PRIMARY KEY (id), 
+	UNIQUE (accion, rol_id, departamento_id), 
+	FOREIGN KEY(rol_id) REFERENCES rol (id), 
+	FOREIGN KEY(departamento_id) REFERENCES departamento (id)
+);
+
+CREATE INDEX ix_permiso_accion_accion ON permiso_accion (accion);
+
 CREATE TABLE permiso_modulo (
 	id SERIAL NOT NULL, 
 	modulo_id INTEGER NOT NULL, 
@@ -149,18 +162,22 @@ CREATE TABLE cierre_caja (
 	monto_declarado NUMERIC(12, 2) NOT NULL, 
 	monto_sistema NUMERIC(12, 2) NOT NULL, 
 	origen VARCHAR(15) NOT NULL, 
+	estado VARCHAR(15) NOT NULL, 
 	registrado_por_id INTEGER, 
 	registrado_en TIMESTAMP WITH TIME ZONE NOT NULL, 
 	PRIMARY KEY (id), 
 	CONSTRAINT ck_cierre_declarado CHECK (monto_declarado >= 0), 
 	CONSTRAINT ck_cierre_sistema CHECK (monto_sistema >= 0), 
 	CONSTRAINT ck_cierre_origen CHECK (origen IN ('carga_inicial','portal')), 
+	CONSTRAINT ck_cierre_estado CHECK (estado IN ('activo','inhabilitado')), 
 	FOREIGN KEY(tienda_id) REFERENCES tienda (id), 
 	FOREIGN KEY(cajero_id) REFERENCES cajero (id), 
 	FOREIGN KEY(registrado_por_id) REFERENCES usuario (id)
 );
 
 CREATE INDEX ix_cierre_caja_cajero_id ON cierre_caja (cajero_id);
+
+CREATE INDEX ix_cierre_caja_estado ON cierre_caja (estado);
 
 CREATE INDEX ix_cierre_caja_fecha ON cierre_caja (fecha);
 
@@ -183,6 +200,21 @@ CREATE TABLE alerta (
 CREATE INDEX ix_alerta_cierre_id ON alerta (cierre_id);
 
 CREATE INDEX ix_alerta_estado ON alerta (estado);
+
+CREATE TABLE cierre_historial (
+	id SERIAL NOT NULL, 
+	cierre_id INTEGER NOT NULL, 
+	estado_anterior VARCHAR(15) NOT NULL, 
+	estado_nuevo VARCHAR(15) NOT NULL, 
+	usuario_id INTEGER NOT NULL, 
+	fecha TIMESTAMP WITH TIME ZONE NOT NULL, 
+	motivo VARCHAR(500) NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(cierre_id) REFERENCES cierre_caja (id), 
+	FOREIGN KEY(usuario_id) REFERENCES usuario (id)
+);
+
+CREATE INDEX ix_cierre_historial_cierre_id ON cierre_historial (cierre_id);
 
 CREATE TABLE alerta_historial (
 	id SERIAL NOT NULL, 

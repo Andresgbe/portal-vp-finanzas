@@ -121,6 +121,21 @@ class Rol(Base):
     nombre: Mapped[str] = mapped_column(String(60))
 
 
+class PermisoAccion(Base):
+    """Qué tipo de usuario puede ejecutar una acción sensible.
+
+    A diferencia de los módulos, aquí también el ADMIN necesita su fila: quién
+    puede hacer algo sensible queda escrito en la BD, sin excepciones en el código.
+    departamento_id NULL = aplica a ese rol en cualquier departamento.
+    """
+    __tablename__ = "permiso_accion"
+    __table_args__ = (UniqueConstraint("accion", "rol_id", "departamento_id"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    accion: Mapped[str] = mapped_column(String(40), index=True)
+    rol_id: Mapped[int] = mapped_column(ForeignKey("rol.id"))
+    departamento_id: Mapped[int | None] = mapped_column(ForeignKey("departamento.id"))
+
+
 class Usuario(Base):
     """Credenciales separadas de los datos de RR. HH. del colaborador."""
     __tablename__ = "usuario"
@@ -201,6 +216,7 @@ class CierreCaja(Base):
         CheckConstraint("monto_declarado >= 0", name="ck_cierre_declarado"),
         CheckConstraint("monto_sistema >= 0", name="ck_cierre_sistema"),
         CheckConstraint("origen IN ('carga_inicial','portal')", name="ck_cierre_origen"),
+        CheckConstraint("estado IN ('activo','inhabilitado')", name="ck_cierre_estado"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     tienda_id: Mapped[int] = mapped_column(ForeignKey("tienda.id"))
@@ -209,6 +225,8 @@ class CierreCaja(Base):
     monto_declarado: Mapped[Decimal] = mapped_column(Monto)
     monto_sistema: Mapped[Decimal] = mapped_column(Monto)
     origen: Mapped[str] = mapped_column(String(15), default="portal")
+    # Un cierre nunca se borra: inhabilitarlo deja el dato y su auditoría
+    estado: Mapped[str] = mapped_column(String(15), default="activo", index=True)
     # NULL solo para la carga inicial del dataset
     registrado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"))
     registrado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora_utc)
@@ -217,10 +235,28 @@ class CierreCaja(Base):
     cajero: Mapped[Cajero] = relationship()
     registrado_por: Mapped[Usuario | None] = relationship()
     alertas: Mapped[list["Alerta"]] = relationship(back_populates="cierre")
+    historial: Mapped[list["CierreHistorial"]] = relationship(
+        back_populates="cierre", order_by="CierreHistorial.id"
+    )
 
     @property
     def diferencia(self) -> Decimal:
         return self.monto_declarado - self.monto_sistema
+
+
+class CierreHistorial(Base):
+    """Bitácora de solo inserción: quién cambió el estado de un cierre, cuándo y por qué."""
+    __tablename__ = "cierre_historial"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    cierre_id: Mapped[int] = mapped_column(ForeignKey("cierre_caja.id"), index=True)
+    estado_anterior: Mapped[str] = mapped_column(String(15))
+    estado_nuevo: Mapped[str] = mapped_column(String(15))
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuario.id"))
+    fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=ahora_utc)
+    motivo: Mapped[str] = mapped_column(String(500))
+
+    cierre: Mapped[CierreCaja] = relationship(back_populates="historial")
+    usuario: Mapped[Usuario] = relationship()
 
 
 REGLAS = ("FUERA_DE_RANGO", "TRANSPOSICION", "REINCIDENCIA", "DUPLICADO")

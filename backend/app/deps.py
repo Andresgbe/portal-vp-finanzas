@@ -15,7 +15,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from .database import get_db
-from .models import Cargo, Colaborador, Modulo, PermisoModulo, Usuario
+from .models import Cargo, Colaborador, Modulo, PermisoAccion, PermisoModulo, Usuario
 from .security import COOKIE_SESION, leer_token
 
 ADMIN, JEFE, COLABORADOR = "ADMIN", "JEFE_DEPTO", "COLABORADOR"
@@ -86,6 +86,27 @@ def requiere_modulo(codigo: str, nivel: str = "lectura"):
         tiene = permisos_de(db, actual).get(codigo)
         if not tiene or NIVELES[tiene] < NIVELES[nivel]:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "No tienes acceso a este módulo")
+        return actual
+    return _dep
+
+
+def tiene_accion(db: Session, actual: UsuarioActual, accion: str) -> bool:
+    """¿La tabla permiso_accion le permite esta acción a su rol y departamento?"""
+    return db.scalar(
+        select(PermisoAccion.id)
+        .where(PermisoAccion.accion == accion, PermisoAccion.rol_id == actual.usuario.rol_id)
+        .where(or_(PermisoAccion.departamento_id.is_(None),
+                   PermisoAccion.departamento_id == actual.departamento_id))
+        .limit(1)
+    ) is not None
+
+
+def requiere_accion(accion: str):
+    """Fábrica de dependencias: Depends(requiere_accion("INHABILITAR_CIERRE"))."""
+    def _dep(actual: UsuarioActual = Depends(usuario_actual),
+             db: Session = Depends(get_db)) -> UsuarioActual:
+        if not tiene_accion(db, actual, accion):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Tu usuario no tiene permiso para esta acción")
         return actual
     return _dep
 

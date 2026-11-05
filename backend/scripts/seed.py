@@ -19,7 +19,7 @@ from app.database import Base, SessionLocal, engine
 from app.deteccion import reprocesar_todo
 from app.models import (
     Cajero, Cargo, CierreCaja, Colaborador, Departamento, Funcion, Modulo,
-    Nivel, Pais, ParametroDeteccion, PermisoModulo, Rol, Tienda, Usuario,
+    Nivel, Pais, ParametroDeteccion, PermisoAccion, PermisoModulo, Rol, Tienda, Usuario,
 )
 from app.security import hash_password
 
@@ -129,6 +129,12 @@ PERMISOS = [
     ("ALERTAS", "JEFE_DEPTO", "Tesorería", "lectura"),
 ]
 
+# (acción, rol, departamento o None = cualquiera). Acciones sensibles por tipo de usuario.
+PERMISOS_ACCION = [
+    ("INHABILITAR_CIERRE", "ADMIN", None),
+    ("INHABILITAR_CIERRE", "JEFE_DEPTO", "Contraloría"),
+]
+
 PARAMETROS = [
     ("TOLERANCIA_ABSOLUTA", "10.00", "Diferencia (en valor absoluto) aceptada sin generar alerta. El ruido normal del dataset llega a 4,81."),
     ("SEVERIDAD_MEDIA_PCT", "2.00", "Desde este % de diferencia sobre el monto sistema la alerta es de severidad media."),
@@ -216,6 +222,9 @@ def cargar_organizacion(db, password_hash: str) -> list[tuple[str, str, str]]:
             modulo_id=modulos[mod].id, rol_id=roles[rol].id,
             departamento_id=deptos[depto].id if depto else None, nivel_acceso=nivel,
         ))
+    for accion, rol, depto in PERMISOS_ACCION:
+        db.add(PermisoAccion(accion=accion, rol_id=roles[rol].id,
+                             departamento_id=deptos[depto].id if depto else None))
     db.add_all(ParametroDeteccion(clave=k, valor=Decimal(v), descripcion=d) for k, v, d in PARAMETROS)
     db.flush()
     return cuentas_demo

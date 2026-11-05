@@ -98,6 +98,12 @@ export interface Cierre {
   registrado_por: string | null;
   registrado_en: string;
   alertas: { id: number; regla: string; severidad: string; estado: string }[];
+  estado: "activo" | "inhabilitado";
+  inhabilitado_por: string | null;
+  inhabilitado_en: string | null;
+  motivo_inhabilitacion: string | null;
+  /** Lo decide el backend según la tabla permiso_accion */
+  puede_inhabilitar: boolean;
 }
 
 export interface CierreCreado extends Cierre {
