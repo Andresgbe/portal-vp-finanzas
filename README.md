@@ -1,79 +1,100 @@
-# Portal VP de Finanzas · Detector de anomalías en cierres de caja
+# Portal VP de Finanzas
 
-Portal interno para la Vicepresidencia de Finanzas: estructura organizacional, acceso por rol y
-departamento, y un proceso de negocio completo de **detección y gestión de anomalías en cierres de caja**.
+Portal interno con control de acceso por rol y un proceso completo de detección y gestión de anomalías en cierres de caja. Prueba técnica de Andrés Gil para el Tech Talent Challenge de Farmatodo. **Todos los datos son ficticios.**
 
-Prueba técnica · Farmatodo Tech Talent Challenge · Andrés Gil.
+## Cuentas
 
-- Decisiones técnicas: [`docs/DECISIONES.md`](docs/DECISIONES.md)
-- Registro de uso de IA: [`docs/REGISTRO_IA.md`](docs/REGISTRO_IA.md)
-- Modelo de datos (DDL): [`database/schema_postgresql.sql`](database/schema_postgresql.sql)
+La contraseña de todas es el valor de `SEED_DEMO_PASSWORD` en el archivo `.env`.
 
-## Requisitos
-- Python 3.12 o 3.13
-- Node.js 20 o superior (frontend)
-- Git
+| Rol | Correo | Qué puede hacer |
+|---|---|---|
+| **Administrador** | `sofia.arriaga@vpfinanzas.example` | Ve los 4 departamentos y todos los módulos |
+| **Jefe de Departamento** (Contraloría) | `tomas.iriarte@vpfinanzas.example` | Ve solo su departamento, consulta cierres y gestiona alertas |
+| **Colaborador** (Tesorería) | `ivan.salcedo@vpfinanzas.example` | Solo lectura: su perfil y sus compañeros activos, con datos limitados |
 
-## Levantar el backend
+Para registrar cierres en la demo: `lucia.paredes@vpfinanzas.example`, Jefe de Tesorería.
+
+## Ejecutar
+
+Requiere Python 3.12 o 3.13 y Node.js 20 o superior. Se usan **dos terminales**, ambas desde la raíz del proyecto.
+
+**Terminal 1: backend**
 
 ```powershell
-# 1. Entorno virtual y dependencias (desde la raíz del proyecto)
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1          # Mac/Linux: source .venv/bin/activate
-pip install -r backend/requirements.txt
-
-# 2. Variables de entorno
-copy .env.example .env                 # Mac/Linux: cp .env.example .env
-python -c "import secrets; print(secrets.token_urlsafe(48))"
-#    -> pega el resultado en JWT_SECRET y define SEED_DEMO_PASSWORD (mín. 10 caracteres)
-
-# 3. Base de datos con datos ficticios
+.\.venv\Scripts\Activate.ps1
 cd backend
-python -m scripts.seed --reset
-
-# 4. Pruebas y servidor
-python -m pytest -q
-uvicorn app.main:app --reload          # http://localhost:8000/docs
+uvicorn app.main:app --reload
 ```
 
-## Levantar el frontend
-Con el backend corriendo, en otra terminal:
+**Terminal 2: frontend**
 
 ```powershell
 cd frontend
-npm install
-npm run dev                            # http://localhost:5173
+npm run dev
 ```
 
-Vite reenvía `/api` al backend, así que el navegador trabaja con un solo origen y la cookie de sesión funciona sin abrir CORS.
+Abrir **http://localhost:5173**.
 
-Otros comandos, desde `frontend/`:
+### Primera instalación
+
+Se hace una sola vez, antes de lo anterior:
 
 ```powershell
-npm test                               # pruebas de formato de montos
-npm run build                          # genera frontend/dist, que FastAPI sirve en http://localhost:8000
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r backend/requirements.txt
+copy .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-## Variables de entorno
+Pegar el resultado en `JWT_SECRET` dentro de `.env` y definir `SEED_DEMO_PASSWORD` (mínimo 10 caracteres). Luego:
 
-| Variable | Descripción |
+```powershell
+cd backend
+python -m scripts.seed --reset
+cd ..\frontend
+npm install
+```
+
+## Antes de presentar
+
+Deja la base limpia. **Esto borra lo creado en pruebas anteriores.**
+
+```powershell
+cd backend
+python -m scripts.seed --reset
+```
+
+Si la aplicación se comporta raro tras un cambio, recarga con `Ctrl + F5`.
+
+## Recorrido de la demo
+
+1. **Sofía:** abre Departamentos y muestra los 4.
+2. **Lucía:** en Cierres registra `1.520,00` contra `1.250,00`. Se genera una alerta de transposición. Al abrirla, no puede gestionarla.
+3. **Tomás:** en Alertas abre esa alerta, ve los dígitos resaltados y la marca como revisada. Queda en el historial.
+4. **Iván:** escribe `/alertas` en la dirección y recibe "No tienes acceso a este módulo".
+
+Otros puntos para mostrar:
+
+- **Alerta #8:** 3.954,90 contra 3.945,90. Difiere solo 9,00, así que la tolerancia no la habría detectado.
+- **Inhabilitar un cierre:** Tomás, en Cierres, con motivo obligatorio.
+- **Descargar PDF:** en Cierres, respeta los filtros activos.
+
+## Datos a la mano
+
+| Dato | Valor |
 |---|---|
-| `APP_ENV` | `development` o `production` |
-| `DATABASE_URL` | `sqlite:///./portal.db` en local; `postgresql+psycopg://...` en producción |
-| `JWT_SECRET` | Clave para firmar sesiones. Obligatoria, mínimo 32 caracteres |
-| `JWT_EXPIRE_MINUTES` | Duración de la sesión (por defecto 60) |
-| `SEED_DEMO_PASSWORD` | Contraseña de los usuarios de demostración |
-| `COOKIE_SECURE` | `true` en producción (HTTPS) |
+| Departamentos | Contabilidad 9, Contraloría 10, Planificación Financiera 11, Tesorería 10 (40 colaboradores) |
+| Cierres y alertas | 60 cierres, 28 alertas: 14 fuera de rango, 6 duplicados, 5 transposiciones, 3 reincidencias |
+| Base de datos | SQLite en local, 19 tablas. PostgreSQL está preparado, pero sin probar ni desplegar |
+| Pruebas | Backend: `python -m pytest -q` desde `backend/`. Frontend: `npm test` desde `frontend/` |
+| Repositorio | https://github.com/Andresgbe/portal-vp-finanzas |
 
-## Cuentas de demostración
-Contraseña: el valor de `SEED_DEMO_PASSWORD`.
+**Regla clave:** quien registra un cierre no puede gestionar sus alertas ni inhabilitarlo, ni siquiera el Administrador. Los permisos se validan en el backend, no en la pantalla.
 
-| Rol | Departamento | Correo |
-|---|---|---|
-| Administrador | Planificación Financiera | sofia.arriaga@vpfinanzas.example |
-| Jefe | Tesorería (registra cierres) | lucia.paredes@vpfinanzas.example |
-| Jefe | Contraloría (gestiona alertas) | tomas.iriarte@vpfinanzas.example |
-| Jefe | Contabilidad | marina.ocando@vpfinanzas.example |
-| Colaborador | Tesorería | ivan.salcedo@vpfinanzas.example |
+## Documentación
 
-Todos los datos son ficticios.
+- [Decisiones técnicas](docs/DECISIONES.md): stack, modelo de datos, seguridad y limitaciones.
+- [Registro de uso de IA](docs/REGISTRO_IA.md)
+- [Modelo de datos (DDL)](database/schema_postgresql.sql)
+- [`.env.example`](.env.example): variables de entorno necesarias.
