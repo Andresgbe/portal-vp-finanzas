@@ -14,14 +14,14 @@ def ids_departamentos(login):
 
 # ------------------------------------------------------------ módulos por rol
 @pytest.mark.parametrize("quien, esperados", [
-    ("admin", {"MI_PERFIL": "escritura", "DIRECTORIO": "escritura", "ESTRUCTURA": "escritura",
+    ("admin", {"MI_PERFIL": "escritura", "DEPARTAMENTOS": "escritura", "DIRECTORIO": "escritura", "ESTRUCTURA": "escritura",
                "CIERRES": "escritura", "ALERTAS": "escritura"}),
-    ("jefe_tesoreria", {"MI_PERFIL": "lectura", "DIRECTORIO": "lectura", "ESTRUCTURA": "lectura",
+    ("jefe_tesoreria", {"MI_PERFIL": "lectura", "DEPARTAMENTOS": "lectura", "DIRECTORIO": "lectura", "ESTRUCTURA": "lectura",
                         "CIERRES": "escritura", "ALERTAS": "lectura"}),
-    ("jefe_contraloria", {"MI_PERFIL": "lectura", "DIRECTORIO": "lectura", "ESTRUCTURA": "lectura",
+    ("jefe_contraloria", {"MI_PERFIL": "lectura", "DEPARTAMENTOS": "lectura", "DIRECTORIO": "lectura", "ESTRUCTURA": "lectura",
                           "CIERRES": "lectura", "ALERTAS": "escritura"}),
-    ("jefe_contabilidad", {"MI_PERFIL": "lectura", "DIRECTORIO": "lectura", "ESTRUCTURA": "lectura"}),
-    ("colab_tesoreria", {"MI_PERFIL": "lectura", "DIRECTORIO": "lectura"}),
+    ("jefe_contabilidad", {"MI_PERFIL": "lectura", "DEPARTAMENTOS": "lectura", "DIRECTORIO": "lectura", "ESTRUCTURA": "lectura"}),
+    ("colab_tesoreria", {"MI_PERFIL": "lectura", "DEPARTAMENTOS": "lectura", "DIRECTORIO": "lectura"}),
 ])
 def test_modulos_visibles_segun_rol_y_departamento(login, quien, esperados):
     modulos = login(quien).get("/api/auth/me").json()["modulos"]
@@ -83,3 +83,10 @@ def test_perfil_incluye_funciones_del_cargo(login):
     perfil = login("jefe_contraloria").get("/api/perfil").json()
     assert perfil["cargo"] == "Gerente de Contraloría"
     assert "Resolver alertas de anomalías de caja" in perfil["funciones"]
+
+
+def test_departamentos_admin_ve_los_cuatro_y_los_demas_solo_el_propio(login):
+    nombres = lambda quien: [d["nombre"] for d in login(quien).get("/api/departamentos").json()]
+    assert len(nombres("admin")) == 4
+    assert nombres("jefe_contraloria") == ["Contraloría"]
+    assert nombres("colab_tesoreria") == ["Tesorería"]

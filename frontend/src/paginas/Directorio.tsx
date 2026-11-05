@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/cliente";
 import type { Colaborador, DepartamentoResumen } from "../api/tipos";
 import { Avatar } from "../componentes/Avatar";
@@ -40,7 +40,10 @@ function ContenidoTarjeta({ persona }: { persona: Colaborador }) {
 
 export function Directorio() {
   const { usuario } = useSesion();
-  const [departamentoId, setDepartamentoId] = useState(usuario!.departamento_id);
+  // Si se llega desde la pestaña Departamentos, se abre el departamento elegido.
+  // Pedir uno ajeno por la URL no da acceso: el backend respondería 403.
+  const [parametros] = useSearchParams();
+  const [departamentoId, setDepartamentoId] = useState(Number(parametros.get("departamento")) || usuario!.departamento_id);
 
   const departamentos = useCarga(() => api<DepartamentoResumen[]>("/departamentos"), []);
   const personas = useCarga(
