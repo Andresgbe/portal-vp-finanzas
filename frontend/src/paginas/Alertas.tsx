@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import { api } from "../api/cliente";
 import type { Alerta, ResumenAlertas } from "../api/tipos";
 import { Avatar } from "../componentes/Avatar";
-import { Chips } from "../componentes/Chips";
 import { EstadoCarga, MensajeError } from "../componentes/Estados";
 import { PillEstado, PillSeveridad } from "../componentes/Etiquetas";
+import { FiltroDesplegable } from "../componentes/FiltroDesplegable";
 import { useCarga } from "../hooks/useCarga";
 import { NOMBRE_ESTADO, NOMBRE_REGLA, NOMBRE_SEVERIDAD } from "../utils/etiquetas";
 import { esNegativo, formatDiferencia, formatFecha } from "../utils/formato";
@@ -87,9 +87,9 @@ export function Alertas() {
 
       <section className="vidrio tabla-marco">
         <div className="filtros">
-          <Chips titulo="Filtrar por estado" opciones={opcionesDe(NOMBRE_ESTADO, "Todos los estados")} valor={estado} alCambiar={setEstado} />
-          <Chips titulo="Filtrar por regla" opciones={opcionesDe(NOMBRE_REGLA, "Todas las reglas")} valor={regla} alCambiar={setRegla} />
-          <Chips titulo="Filtrar por severidad" opciones={opcionesDe(NOMBRE_SEVERIDAD, "Toda severidad")} valor={severidad} alCambiar={setSeveridad} />
+          <FiltroDesplegable titulo="Estado" opciones={opcionesDe(NOMBRE_ESTADO, "Todos")} valor={estado} alCambiar={setEstado} />
+          <FiltroDesplegable titulo="Regla" opciones={opcionesDe(NOMBRE_REGLA, "Todas")} valor={regla} alCambiar={setRegla} />
+          <FiltroDesplegable titulo="Severidad" opciones={opcionesDe(NOMBRE_SEVERIDAD, "Todas")} valor={severidad} alCambiar={setSeveridad} />
         </div>
 
         {alertas.error && <div className="filtros"><MensajeError texto={alertas.error} /></div>}

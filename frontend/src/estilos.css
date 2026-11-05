@@ -258,21 +258,54 @@ input[type="checkbox"] { width: 18px; height: 18px; }
 .boton-secundario:hover:not(:disabled) { background: #ffffff; }
 .botones { display: flex; flex-wrap: wrap; gap: 8px; }
 
-/* ---------- Filtros tipo chip ---------- */
-.filtros { display: flex; flex-wrap: wrap; gap: 10px 24px; padding: 16px 20px; }
-.grupo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  min-height: 38px;
-  padding-inline: 14px;
-  border: 0;
+/* ---------- Filtros desplegables ---------- */
+.filtros { display: flex; flex-wrap: wrap; gap: 10px; padding: 16px 20px; }
+.desplegable { position: relative; }
+.desplegable-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding-inline: 16px;
+  border: 1px solid var(--borde-campo);
   border-radius: 999px;
-  background: rgba(11, 61, 145, 0.06);
-  color: #2e3a4e;
-  font: 600 13px var(--fuente);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--texto);
+  font: 600 14px var(--fuente);
   cursor: pointer;
 }
-.chip:hover { background: rgba(11, 61, 145, 0.12); }
-.chip[aria-pressed="true"] { background: var(--azul); color: #ffffff; }
+.desplegable-boton:hover { background: #ffffff; border-color: #aab6c9; }
+.desplegable-activo, .desplegable-activo:hover { background: var(--azul); border-color: var(--azul); color: #ffffff; }
+.desplegable-flecha { transition: transform 0.15s; }
+.desplegable-flecha.girada { transform: rotate(180deg); }
+.desplegable-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 190px;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid var(--borde-campo);
+  border-radius: 14px;
+  box-shadow: 0 14px 32px rgba(20, 40, 80, 0.16);
+}
+.desplegable-opcion {
+  min-height: 40px;
+  padding-inline: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--texto);
+  font: 500 14px var(--fuente);
+  text-align: left;
+  cursor: pointer;
+}
+.desplegable-opcion:hover { background: var(--azul-tenue); }
+.desplegable-opcion[aria-pressed="true"] { background: var(--azul); color: #ffffff; font-weight: 600; }
 
 /* ---------- Etiquetas de estado: siempre con texto, nunca solo color ---------- */
 .pill {
@@ -295,8 +328,9 @@ input[type="checkbox"] { width: 18px; height: 18px; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ---------- Tablas y montos ---------- */
-.tabla-marco { min-width: 0; overflow: hidden; }
-.tabla-scroll { overflow-x: auto; }
+/* Sin overflow hidden en el marco: recortaría los filtros desplegables */
+.tabla-marco { min-width: 0; }
+.tabla-scroll { overflow-x: auto; border-radius: 0 0 18px 18px; }
 table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; }
 th { padding: 12px 20px; text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--tenue); white-space: nowrap; }
 td { padding: 14px 20px; border-top: 1px solid var(--linea); vertical-align: middle; }
@@ -415,6 +449,6 @@ a.persona:hover { color: inherit; transform: translateY(-2px); box-shadow: 0 14p
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .enlace-menu, a.persona { transition: none; }
+  .enlace-menu, a.persona, .desplegable-flecha { transition: none; }
   a.persona:hover { transform: none; }
 }

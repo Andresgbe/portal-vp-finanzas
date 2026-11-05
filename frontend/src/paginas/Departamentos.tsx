@@ -20,6 +20,12 @@ export function Departamentos() {
         <p className="subtitulo">Elige un departamento para ver su directorio.</p>
       </div>
 
+      {usuario!.rol !== "ADMIN" && (
+        <p className="estado estado-info">
+          Tu rol solo te permite ver tu propio departamento. Los 4 departamentos de la VP los ve el Administrador.
+        </p>
+      )}
+
       {error && <MensajeError texto={error} />}
       {cargando && !datos && <EstadoCarga />}
       {datos?.length === 0 && <EstadoVacio texto="No hay departamentos para mostrar." />}
