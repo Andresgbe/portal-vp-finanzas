@@ -230,7 +230,7 @@ export function Cierres() {
 
         {cierres.datos && (
           <div className="tabla-scroll">
-            <table>
+            <table className="tabla-cierres">
               <thead>
                 <tr>
                   <th>Fecha</th>
@@ -241,7 +241,6 @@ export function Cierres() {
                   <th className="num">Diferencia</th>
                   <th>Alertas</th>
                   <th>Estado</th>
-                  <th><span className="oculto">Acción</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -260,21 +259,21 @@ export function Cierres() {
                     </td>
                     <td>
                       {c.estado === "activo" ? (
-                        <span className="pill pill-ok">Activo</span>
+                        <div className="estado-cierre">
+                          <span className="pill pill-ok">Activo</span>
+                          {/* El backend decide si se puede: tabla permiso_accion y segregación de funciones */}
+                          {c.puede_inhabilitar && (
+                            <button type="button" className="ver ver-boton" onClick={() => { setAviso(null); setAInhabilitar(c); }}>
+                              Inhabilitar
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <div className="baja-cierre">
                           <span className="pill pill-neutra">Inhabilitado</span>
                           <small>{c.motivo_inhabilitacion}</small>
                           {c.inhabilitado_en && <small>{c.inhabilitado_por} · {formatFechaHora(c.inhabilitado_en)}</small>}
                         </div>
-                      )}
-                    </td>
-                    <td className="num">
-                      {/* El backend decide si se puede: tabla permiso_accion y segregación de funciones */}
-                      {c.puede_inhabilitar && (
-                        <button type="button" className="ver ver-boton" onClick={() => { setAviso(null); setAInhabilitar(c); }}>
-                          Inhabilitar
-                        </button>
                       )}
                     </td>
                   </tr>

@@ -320,6 +320,9 @@ tbody tr:hover td { background: rgba(11, 61, 145, 0.035); }
   white-space: nowrap;
 }
 .ver:hover { background: rgba(11, 61, 145, 0.15); }
+.tabla-cierres th, .tabla-cierres td { padding-inline: 12px; }
+.tabla-cierres th:first-child, .tabla-cierres td:first-child { padding-left: 20px; }
+.estado-cierre { display: flex; align-items: center; gap: 8px; }
 .ver-boton { border: 0; color: var(--azul); font-family: var(--fuente); cursor: pointer; }
 .fila-inhabilitada td { color: var(--tenue); }
 .fila-inhabilitada .negativo { color: var(--tenue); }
